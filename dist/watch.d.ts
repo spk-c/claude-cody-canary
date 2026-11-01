@@ -10,9 +10,10 @@ declare const WatchStateSchema: z.ZodObject<{
         compatible: "compatible";
         regression: "regression";
     }>>;
+    pendingVersion: z.ZodOptional<z.ZodString>;
 }, z.core.$strict>;
 export type WatchState = z.infer<typeof WatchStateSchema>;
-export type WatchStatus = 'initialized' | 'no-change' | 'new-release' | 'compatible' | 'regression';
+export type WatchStatus = 'initialized' | 'no-change' | 'new-release' | 'compatible' | 'regression' | 'infrastructure-error';
 export interface WatchOptions {
     cwd?: string;
     suitePath: string;
@@ -37,6 +38,7 @@ export interface WatchResult {
     candidate?: string;
     firstBadRelease?: string;
     firstFailingScenario?: string;
+    infrastructureError?: string;
     suite?: SuiteRunResult;
     statePath: string;
     jsonArtifactPath?: string;
@@ -44,6 +46,9 @@ export interface WatchResult {
 }
 declare function readState(file: string): Promise<WatchState | undefined>;
 declare function formatWatchMarkdown(result: WatchResult): string;
+/** Infrastructure failures cannot be called model regressions or mark a release good. */
+export declare function classifyWatchedSuite(suite: Pick<SuiteRunResult, 'passed' | 'infrastructureFailedCount' | 'total' | 'passedCount'>): 'compatible' | 'regression' | 'infrastructure-error';
+export declare function versionsRequiringWatch(published: string[], lastObserved: string, pendingVersion?: string): string[];
 export declare function watchClaudeCodeReleases(options: WatchOptions): Promise<WatchResult>;
 export { formatWatchMarkdown, readState as readWatchState };
 //# sourceMappingURL=watch.d.ts.map

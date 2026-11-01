@@ -12,7 +12,7 @@ export function exitCodeForSuite(result) {
     return CanaryExitCode.regression;
 }
 export function exitCodeForWatch(status, infrastructureFailedCount = 0) {
-    if (infrastructureFailedCount > 0)
+    if (infrastructureFailedCount > 0 || status === 'infrastructure-error')
         return CanaryExitCode.infrastructure;
     if (status === 'regression')
         return CanaryExitCode.regression;
