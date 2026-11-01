@@ -34,7 +34,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/clean-consumer"
-          npm install --prefix "$RUNNER_TEMP/clean-consumer" "$RUNNER_TEMP/claude-code-canary-2.1.0.tgz" --ignore-scripts --no-audit --no-fund
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          npm install --prefix "$RUNNER_TEMP/clean-consumer" "$RUNNER_TEMP/claude-code-canary-${PACKAGE_VERSION}.tgz" --ignore-scripts --no-audit --no-fund
           cp tests/fixtures/package-consumer-smoke.mjs "$RUNNER_TEMP/clean-consumer/smoke.mjs"
           node "$RUNNER_TEMP/clean-consumer/smoke.mjs"
 

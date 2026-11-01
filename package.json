@@ -1,6 +1,6 @@
 {
   "name": "claude-code-canary",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Source-buildable Claude Code Canary fork with security regression coverage",
   "author": "SLP-DEV1",
   "type": "module",

@@ -6,7 +6,7 @@ on:
     inputs:
       version:
         required: true
-        description: Version with or without v prefix (2.1.0 or v2.1.0)
+        description: Version with or without v prefix (2.1.1 or v2.1.1)
         type: string
       confirmation:
         required: true

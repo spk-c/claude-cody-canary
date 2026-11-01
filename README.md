@@ -14,7 +14,8 @@ production credentials or on unrestricted hosts.
 
 ## Published release and installation
 
-This fork has a published [v2.1.0 GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.0).
+The latest published stable fork build remains [v2.1.0 on GitHub](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.0).
+The default branch is preparing **2.1.1**; it is not a published release yet.
 For **full TypeScript source**, use the GitHub tag's Source code archive.
 The separately attached `claude-code-canary-2.1.0.tgz` is an installable
 package containing built JavaScript, not full source. npm registry publishing

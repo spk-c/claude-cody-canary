@@ -1,6 +1,7 @@
 # Releasing the source-restored fork
 
-The package metadata currently reports version 2.1.0. A GitHub Release is
+The package metadata currently reports version 2.1.1 (prepared, not yet published).
+The last published fork release is v2.1.0. A GitHub Release is
 published only when the release workflow is manually triggered. Model-backed
 Claude E2E and GitHub branch protection are **not** requirements.
 
@@ -15,9 +16,9 @@ Claude E2E and GitHub branch protection are **not** requirements.
 ## GitHub Release
 
 Go to [Publish CI-verified GitHub Release](../.github/workflows/release.yml),
-select branch `main`, and enter **`2.1.0` or `v2.1.0`** (matching
+select branch `main`, and enter **`2.1.1` or `v2.1.1`** (matching
 `package.json`) plus `confirmation: PUBLISH`. The workflow normalizes
-both formats to the single immutable tag `v2.1.0`; a different version,
+both formats to the single immutable tag `v2.1.1`; a different version,
 prerelease, arbitrary ref or invalid input is rejected.
 
 The workflow:
@@ -44,7 +45,7 @@ adding npm publication.
 ## Future version updates
 
 ```sh
-npm run release:version -- 2.1.1
+npm run release:version -- 2.1.2
 npm run build
 npm run check
 npm run check:dist

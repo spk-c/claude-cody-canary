@@ -4,6 +4,15 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+### Prepared fork patch v2.1.1
+
+- Correct fork-specific distribution, security and action documentation.
+- Add real clean-consumer, published-package, and tagged Action smoke tests.
+- Expand CI to macOS and canonicalize security test fixture paths.
+- Add verified parallel suite-shard merging, offline benchmarks and safe cache/incremental selection guidance.
+- Keep paid Claude E2E optional and do not publish to npm.
+
+
 ### Fork improvements after published v2.1.0
 
 - Restore original TypeScript source and automated tests from a public archival copy.
