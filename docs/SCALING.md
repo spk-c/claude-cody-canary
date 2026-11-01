@@ -80,3 +80,15 @@ history indexing.
 
 A general bounded DAG scheduler and persistent history index remain
 separate roadmap items; they are **not** claimed to exist in this release.
+
+### Per-suite digest reuse (after v2.1.1)
+
+Cache-eligible suite workers now share a short-lived digest memo for Claude
+executables and configuration files. Every memo lookup rechecks live file
+identity (device/inode, size and modification/change timestamps), and any
+change while hashing fails closed. Environment values and the suite/cache
+identity are still recomputed for each scenario, so changing provider settings
+invalidates cache keys rather than silently reusing stale results.
+
+This only reduces hashing overhead within one suite process. It does not
+share hashes between machines, runs, different repositories or credentials.

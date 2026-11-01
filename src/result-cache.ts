@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import type { Scenario } from './config.js';
@@ -37,6 +37,35 @@ async function sha256File(file: string): Promise<string> {
   return hash.digest('hex');
 }
 
+/** Short-lived, per-suite content hash memo; file metadata is checked before every reuse. */
+export type CacheDigestMemo = Map<string, { signature: string; digest: string }>;
+
+function fileSignature(info: Awaited<ReturnType<typeof stat>>): string {
+  // bigint stat has nanosecond timestamps even on Windows/Node 20.
+  return [info.dev, info.ino, info.size, info.mtimeMs, info.ctimeMs].join(':');
+}
+
+/**
+ * Validates a cached file digest against the live inode, size and timestamps.
+ * A change while hashing fails closed rather than caching an unstable digest.
+ */
+export async function sha256FileMemoized(file: string, memo?: CacheDigestMemo): Promise<string> {
+  if (!memo) return sha256File(file);
+  const location = path.resolve(file);
+  const before = await stat(location);
+  const signature = fileSignature(before);
+  const previous = memo.get(location);
+  if (previous?.signature === signature) return previous.digest;
+  const digest = await sha256File(location);
+  const after = await stat(location);
+  if (fileSignature(after) !== signature) {
+    memo.delete(location);
+    throw new Error('Cached digest source changed during hashing; retry with stable inputs.');
+  }
+  memo.set(location, { signature, digest });
+  return digest;
+}
+
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
   if (value && typeof value === 'object') {
@@ -49,7 +78,7 @@ function sha256Json(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 }
 
-async function runtimeConfigFingerprint(repoRoot: string): Promise<string> {
+async function runtimeConfigFingerprint(repoRoot: string, memo?: CacheDigestMemo): Promise<string> {
   const files = [
     'CLAUDE.md', 'CLAUDE.local.md', '.mcp.json',
     '.claude/settings.json', '.claude/settings.local.json', '.claude/CLAUDE.md',
@@ -58,7 +87,7 @@ async function runtimeConfigFingerprint(repoRoot: string): Promise<string> {
   const digest = createHash('sha256');
   for (const file of files.sort()) {
     digest.update(file);
-    try { digest.update(await sha256File(file)); }
+    try { digest.update(await sha256FileMemoized(file, memo)); }
     catch (error) {
       if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') digest.update('<missing>');
       else throw error;
@@ -75,6 +104,7 @@ export async function buildResultCacheIdentity(options: {
   executable: string;
   gitRef?: string;
   featureFlags?: unknown;
+  hashMemo?: CacheDigestMemo;
 }): Promise<ResultCacheIdentity> {
   const cwd = path.resolve(options.cwd);
   const repoRoot = await getRepoRoot(cwd);
@@ -84,10 +114,10 @@ export async function buildResultCacheIdentity(options: {
   const nodeMajor = process.versions.node.split('.')[0];
   return {
     schemaVersion: 2,
-    runtimeConfigHash: await runtimeConfigFingerprint(repoRoot),
+    runtimeConfigHash: await runtimeConfigFingerprint(repoRoot, options.hashMemo),
     scenarioHash: createHash('sha256').update(options.scenarioSource).digest('hex'),
     gitCommit,
-    executableSha256: await sha256File(executable),
+    executableSha256: await sha256FileMemoized(executable, options.hashMemo),
     canaryVersion: CANARY_VERSION,
     platform: process.platform,
     arch: process.arch,
@@ -136,7 +166,7 @@ export async function writeCachedRun(cacheRoot: string, identity: ResultCacheIde
 export async function runScenarioWithCache(
   scenario: Scenario,
   scenarioPath: string,
-  options: RunOptions & { cacheRoot?: string; featureFlags?: unknown } = {},
+  options: RunOptions & { cacheRoot?: string; featureFlags?: unknown; hashMemo?: CacheDigestMemo } = {},
 ): Promise<{ result: RunResult; cacheHit: boolean; cacheKey: string }> {
   const cwd = path.resolve(options.cwd ?? process.cwd());
   const source = await readFile(path.resolve(cwd, scenarioPath), 'utf8');
@@ -149,6 +179,7 @@ export async function runScenarioWithCache(
     scenarioSource: source,
     executable,
     gitRef: options.gitRefOverride,
+    hashMemo: options.hashMemo,
     featureFlags: { scenario: { model: scenario.claude.model, permissionMode: scenario.claude.permission_mode, args: scenario.claude.args, env: scenario.claude.env }, providerFlags, extra: options.featureFlags },
   });
   const cacheRoot = path.resolve(cwd, options.cacheRoot ?? '.canary/cache/results');
