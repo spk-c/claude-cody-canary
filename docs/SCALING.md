@@ -2,7 +2,7 @@
 
 Canary's current `suite` command already offers selection/sharding and
 verified-identity **local** cached results. This fork adds a strict multi-job
-shard merge tool without changing the v2.1.0 CLI or result schema.
+shard merge tool without changing the published v2.1.1 CLI or result schema.
 
 ## Incremental suite planning (no model calls)
 
@@ -96,3 +96,11 @@ invalidates cache keys rather than silently reusing stale results.
 
 This only reduces hashing overhead within one suite process. It does not
 share hashes between machines, runs, different repositories or credentials.
+
+## Distribution status
+
+All core scale updates described here are merged on `main` after the
+published v2.1.1 tag. The optional DAG orchestrator and compact history
+index are repository scripts; see [orchestration and history](ORCHESTRATION_HISTORY.md).
+Neither these scripts nor the new merged source enhancements are claimed
+as shipped in the immutable v2.1.1 release.

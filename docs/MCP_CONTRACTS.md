@@ -209,10 +209,15 @@ A declared `listChanged` capability is independently assertable in the contract.
 ```yaml
 - name: Check MCP contract
   run: |
-    # Install the verified v2.1.0 Release .tgz in your project first.
+    # Install the verified v2.1.1 Release .tgz in your project first.
     npx --no-install claude-canary mcp-check .canary/mcp/github.mcp.yml --require-baseline
 ```
 
 Commit the `.mcp.yml` file and its reviewed baseline. Do not commit credentials into the contract; reference only non-secret test-mode environment values and inject real secrets through the CI environment if the server truly needs them.
 
 An MCP contract can launch an arbitrary local command. Treat contract files and the referenced server code as executable trusted CI input, just like Canary scenarios and build scripts. Do not run untrusted fork contracts with privileged environment credentials.
+
+> **Release note:** The 2026-07-28 stdio and Streamable HTTP inspector is
+> merged to `main` after the published v2.1.1 tag. Downloading the older
+> v2.1.1 tarball will not provide this new inspector yet. Build from current
+> source or use a future versioned release after it passes publication gates.

@@ -29,7 +29,7 @@ Key guarantees:
 - Node.js 20+ remains supported.
 - Existing `run`, `compare`, `bisect`, `pr-check`, baseline, plugin, MCP, experiment, record/replay, agent-team and Doctor workflows remain available.
 - New Action modes include first-class `suite` and `watch` orchestration.
-- `v1` remains the floating Action channel for the v1.x line; v2 releases use `v2`.
+- The historical upstream uses floating `v1` / `v2` Action channels. **This fork has not published those tags**: use an exact immutable GitHub Release tag.
 - This fork publishes GitHub Releases after deterministic source, security, audit and packaging gates. Authenticated `Live Claude E2E (full)` is optional and is **not** claimed to have passed when credentials were not supplied.
 - Public v2 compatibility schemas are explicitly versioned; breaking changes require a new schema/major contract rather than silent mutation.
 
@@ -55,13 +55,20 @@ The next work should deepen usability and ecosystem adoption rather than re-crea
 - ✅ locally generated evidence-backed SVG badges with machine-readable manifest/evidence bindings and publishable Markdown;
 - ✅ conflict-aware registry import/export with filtered subsets, full-manifest identity, collision-safe deduplication and explicit contradictory-result handling.
 
-### v2.3 — Scale
+### Post-v2.1.1 scale and reliability work (merged on `main`, not released)
 
-- shard-result merge with collision/coverage checks and a stable CI toolchain;
-- more aggressive compatibility-safe local/CI caching;
-- incremental suite planning for large monorepos;
-- bounded DAG-style orchestration for mixed scenario/plugin/MCP suites;
-- compact historical indexes for long-running release-watch repositories.
+- ✅ shard-result merging with collision/coverage checks and shared execution identities;
+- ✅ per-suite executable/configuration hash memoization with live file metadata invalidation;
+- ✅ one-pass compiled-glob scenario discovery and existing incremental selection;
+- ✅ repository-local bounded DAG-style orchestration for suite and MCP check nodes (plugin/DAG remote scheduling remains future work);
+- ✅ compact repository-local privacy-preserving historical summary index;
+- ✅ reliable scheduled release-watch retries and infrastructure classification;
+- ✅ explicit modern MCP 2026-07-28 stdio and limited read-only Streamable HTTP inspection;
+- ✅ GitHub release build-provenance attestation in the **future release workflow** (existing v2.1.1 assets are unchanged).
+
+These changes require a **new versioned release** before they become part of
+an immutable downloadable Canary CLI/Action. The optional DAG and history
+scripts are repository-only until separately packaged.
 
 ### Future major ideas
 

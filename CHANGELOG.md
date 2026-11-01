@@ -4,7 +4,16 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
-### Prepared fork patch v2.1.1
+### After v2.1.1 (merged, not released)
+
+- Retry failed release-watch candidates and classify incomplete infrastructure results.
+- Inspect modern MCP 2026-07-28 over stateless stdio and bounded read-only Streamable HTTP.
+- Speed up suite discovery, enforce shared shard run identities and safely memoize file hashes.
+- Add offline dependency-DAG orchestration, result-history index and release attestation support.
+- Preserve backward-compatible CLI schemas and optional paid E2E.
+
+
+### Published fork patch v2.1.1 (2026-11-01)
 
 - Correct fork-specific distribution, security and action documentation.
 - Add real clean-consumer, published-package, and tagged Action smoke tests.

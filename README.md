@@ -14,14 +14,16 @@ production credentials or on unrestricted hosts.
 
 ## Published release and installation
 
-The latest published stable fork build remains [v2.1.0 on GitHub](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.0).
-The default branch is preparing **2.1.1**; it is not a published release yet.
+The latest published stable fork build is [v2.1.1 on GitHub](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.1).
+The `main` branch also contains **unreleased** follow-up improvements (watch retry
+reliability, MCP 2026 inspection, suite scale, and offline orchestration).
+Do not treat those as shipped in the immutable v2.1.1 tag.
 For **full TypeScript source**, use the GitHub tag's Source code archive.
-The separately attached `claude-code-canary-2.1.0.tgz` is an installable
+The separately attached `claude-code-canary-2.1.1.tgz` is an installable
 package containing built JavaScript, not full source. npm registry publishing
 and a floating `@v2` GitHub Action tag are **not** enabled for this fork.
 
-Use the exact `spk-c/claude-cody-canary@v2.1.0` Action tag.
+Use the exact `spk-c/claude-cody-canary@v2.1.1` Action tag.
 See [distribution and consumer verification](docs/DISTRIBUTION.md).
 
 ## Develop and test
