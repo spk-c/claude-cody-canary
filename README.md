@@ -28,7 +28,7 @@ node dist/v2-cli.js doctor
 then executes security and MCP/CLI integration tests and documentation checks.
 The lockfile pins production and development dependencies; CI runs `npm ci`.
 
-## Live authenticated Claude Code E2E
+## Optional live authenticated Claude Code E2E
 
 The manual [Live Claude Code E2E workflow](.github/workflows/live-claude-e2e.yml)
 installs the actual Claude Code CLI and exercises a disposable Git scenario via
@@ -47,13 +47,14 @@ The original Claude Code Canary project is attributed to SLP-DEV1, MIT License
 (see [LICENSE](LICENSE)). This repository's security changes and CI:
 [spk-c/claude-cody-canary](https://github.com/spk-c/claude-cody-canary).
 
-## Current release status and repository protection
+## Current release status
 
 The source build and real Claude CLI/MCP smoke pass in CI; this is not the
 same as a successful paid-model `full` E2E run. See
-[Live E2E](docs/LIVE_E2E.md), [release process](docs/RELEASING.md), and
-[administrator branch protection](docs/REPOSITORY_SECURITY.md).
+[optional Live E2E](docs/LIVE_E2E.md) and
+[release process](docs/RELEASING.md).
 
 CodeQL, Dependabot and full-dependency `npm audit` workflows are included.
-The release workflow **refuses to publish** without evidence from an exact-SHA
-successful full live test. No npm publication is enabled.
+The manually triggered GitHub Release workflow uses build, test, source-drift
+and dependency-audit checks. It does **not** require branch protection or
+authenticated model-backed E2E. No npm publication is enabled.

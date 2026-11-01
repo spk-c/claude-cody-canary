@@ -1,44 +1,45 @@
-# Release process for the source-restored fork
+# Releasing the source-restored fork
 
-Current metadata is v2.1.0, but **there is no published release yet**.
-The repo's GitHub Release workflow is deliberately gated. Do not interpret
-a passing unit test suite or Claude CLI MCP smoke test as a full release gate.
+The package metadata currently reports version 2.1.0. A GitHub Release is
+published only when the release workflow is manually triggered. Model-backed
+Claude E2E and GitHub branch protection are **not** requirements.
 
-## Preconditions
+## Release checks
 
-- Protect `main` and restrict who can merge or dispatch workflows (see
-  [REPOSITORY_SECURITY.md](REPOSITORY_SECURITY.md)).
-- All Source and security CI and CodeQL checks are green.
-- `npm ci && npm run check && npm run check:dist` pass.
-- `npm audit --audit-level=high` reports no high or critical advisories.
-- The final release commit has a **successful authenticated** `Live Claude E2E
-  (full)` workflow_dispatch run on `main`. The same exact SHA must be released.
-- Changelog version and License/MIT attribution reviewed.
+- `npm ci`, `npm run check`, `npm run check:dist`, and the high-severity
+  `npm audit` must succeed.
+- All CI checks and CodeQL are expected to be green before publishing.
+- The release version must match `package.json`.
+- Review `CHANGELOG.md` and retain MIT license and attribution.
 
-## GitHub Release (no npm publishing)
+## GitHub Release
 
-Open [Publish verified GitHub Release](../.github/workflows/release.yml)
-and dispatch it **from main** with `version: v2.1.0` (or the version that
-matches package.json) and `confirmation: PUBLISH`.
+Go to [Publish CI-verified GitHub Release](../.github/workflows/release.yml),
+select branch `main`, and enter `version: v2.1.0` (or the currently
+declared package version) plus `confirmation: PUBLISH`.
 
 The workflow:
-1. Checks current main SHA, tag syntax and version metadata.
-2. Rebuilds and runs the complete test suite, package dry-run and security audit.
-3. Queries GitHub Actions and requires a successful authenticated
-   `Live Claude E2E (full)` run on the **exact same commit SHA**.
-4. Creates the exact immutable `vX.Y.Z` tag if it does not already exist.
-5. Publishes a GitHub Release containing an npm-compatible `.tgz` tarball
-   and `SHA256SUMS`, or refuses to overwrite an existing release.
 
-There is **no implicit npm publish or floating major alias update**. This
-fork still has `"private": true` in package.json. Publishing to npm would
-require a deliberately selected available scoped name, appropriate registry
-ownership and configured npm Trusted Publishing. Do not remove `private`
-or publish under the upstream package name without verifying ownership.
+1. Verifies that it is running on `main` and checks the exact version and
+   checkout SHA.
+2. Installs locked dependencies, builds, runs tests, verifies the committed
+   `dist/`, audits dependencies and checks the package tarball.
+3. Creates the immutable exact version tag without replacing a preexisting tag.
+4. Publishes a GitHub Release with the package `.tgz` and `SHA256SUMS`;
+   it will not overwrite an existing release.
 
-## Bumping the version
+No API key or paid-model E2E run is needed. A model-backed `core` or `full`
+test can still be run independently, but it does not gate publication. The
+absence of such a test must not be mistaken for verified model compatibility.
 
-After committing a reviewed changelog entry, invoke:
+## npm publication
+
+`package.json` retains `"private": true`. The release workflow creates a
+GitHub Release, **not** an npm registry publication. A separately selected
+package name, ownership verification and Trusted Publishing are needed before
+adding npm publication.
+
+## Future version updates
 
 ```sh
 npm run release:version -- 2.1.1
@@ -47,7 +48,5 @@ npm run check
 npm run check:dist
 ```
 
-Commit the updated version source, package, lockfile and generated dist files.
-Run `full` authenticated E2E on that resulting exact commit before publishing.
-To correct an existing published release, create a new version rather than
-rewriting tags or replacing artifacts.
+Commit the source/version metadata and generated distribution together before
+releasing. Do not rewrite existing tags; publish a new patch release for fixes.

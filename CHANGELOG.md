@@ -9,7 +9,7 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 - Restore original TypeScript source and automated tests from a public archival copy.
 - Harden permission instrumentation, worktree assertions, MCP responses, cache results and attestation verification.
 - Protect live E2E disposable fixture paths against unsafe cleanup and symlink traversal.
-- Require exact-commit authenticated full E2E evidence before any GitHub Release is created.
+- Keep the authenticated full E2E workflow optional; GitHub Releases rely on build, tests and dependency audit.
 - Add reproducible build validation, CodeQL, Dependabot and development-dependency audits.
 - Keep npm publication disabled until a separate scoped package and trusted publisher have been verified.
 

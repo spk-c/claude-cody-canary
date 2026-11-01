@@ -11,16 +11,14 @@ is a manual-only GitHub Actions workflow. It runs on the reviewed `main`
 branch with the repository Actions secret `ANTHROPIC_API_KEY` passed **only**
 to the step that actually runs Claude. It never runs on pull requests.
 
-1. Configure the Actions secret `ANTHROPIC_API_KEY` (never commit the key).
-2. Protect `main` following [repository security](REPOSITORY_SECURITY.md).
-3. In Actions, select **Live Claude Code E2E (authenticated)**.
-4. Select branch `main`, choose `core`, and run the workflow.
-5. Investigate failures; then run `full` on the **exact intended release commit**.
+If you *choose* to run this optional workflow, configure the Actions
+secret `ANTHROPIC_API_KEY` (never commit the key), select the workflow in
+GitHub Actions and run either `core` or `full` on `main`.
+Neither suite is required by normal CI or the release workflow.
 
 The workflow's explicit run names are `Live Claude E2E (core)` and
-`Live Claude E2E (full)`. The release gate accepts only a successful
-**full** run for the exact commit SHA that is being published. Core is not
-sufficient; passing on another commit is not sufficient.
+`Live Claude E2E (full)`. These are optional compatibility checks rather
+than publication prerequisites.
 
 `core` exercises discovery, `doctor`, `init`, `validate`, version
 installation, a model-backed edit, compare, and plugin initialization.
@@ -53,7 +51,5 @@ Optional variables: `CLAUDE_CANARY_E2E_CLAUDE` overrides the CLI;
 `CLAUDE_CANARY_E2E_DIR` selects an explicitly owned parent directory.
 
 `scripts/live-provider-e2e.mjs` is an optional compatibility wrapper for
-third-party providers, requiring a separately installed router. It is **not**
-the enabled GitHub Actions workflow and is not accepted as the Anthropic
-full-E2E release evidence. Its older provider examples do not define the
-project's current CI release policy.
+third-party providers, requiring a separately installed router. It is **not** the enabled GitHub Actions workflow and does not define
+the project's normal CI or release requirements.

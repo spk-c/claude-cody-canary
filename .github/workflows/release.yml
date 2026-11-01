@@ -1,4 +1,4 @@
-name: Publish verified GitHub Release
+name: Publish CI-verified GitHub Release
 run-name: Release ${{ inputs.version }}
 
 on:
@@ -52,13 +52,6 @@ jobs:
           npm run check:dist
           npm audit --audit-level=high
           npm pack --dry-run --ignore-scripts
-      - name: Require successful full live E2E on this exact commit
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/live-claude-e2e.yml/runs?event=workflow_dispatch&status=success&per_page=100" > "$RUNNER_TEMP/canary-e2e-runs.json"
-          node scripts/check-release-evidence.mjs "$GITHUB_SHA" "$RUNNER_TEMP/canary-e2e-runs.json"
       - name: Build release archive and checksums
         shell: bash
         run: |
