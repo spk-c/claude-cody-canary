@@ -15,13 +15,15 @@ Claude E2E and GitHub branch protection are **not** requirements.
 ## GitHub Release
 
 Go to [Publish CI-verified GitHub Release](../.github/workflows/release.yml),
-select branch `main`, and enter `version: v2.1.0` (or the currently
-declared package version) plus `confirmation: PUBLISH`.
+select branch `main`, and enter **`2.1.0` or `v2.1.0`** (matching
+`package.json`) plus `confirmation: PUBLISH`. The workflow normalizes
+both formats to the single immutable tag `v2.1.0`; a different version,
+prerelease, arbitrary ref or invalid input is rejected.
 
 The workflow:
 
-1. Verifies that it is running on `main` and checks the exact version and
-   checkout SHA.
+1. Verifies that it is running on `main`, normalizes and validates the exact
+   version, and checks the checkout SHA.
 2. Installs locked dependencies, builds, runs tests, verifies the committed
    `dist/`, audits dependencies and checks the package tarball.
 3. Creates the immutable exact version tag without replacing a preexisting tag.

@@ -6,7 +6,7 @@ on:
     inputs:
       version:
         required: true
-        description: Exact version including v prefix (e.g. v2.1.0)
+        description: Version with or without v prefix (2.1.0 or v2.1.0)
         type: string
       confirmation:
         required: true
@@ -33,7 +33,10 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - name: Validate manual release request before accessing credentials
+      - name: Use same npm version as source CI
+        run: npm install --global npm@11.19.1
+      - name: Validate and normalize manual release request before accessing credentials
+        id: release_version
         env:
           INPUT_VERSION: ${{ inputs.version }}
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
@@ -41,9 +44,7 @@ jobs:
         run: |
           test "$GITHUB_REF" = 'refs/heads/main' || { echo 'Only main can publish'; exit 1; }
           test "$INPUT_CONFIRMATION" = PUBLISH || { echo 'Explicit PUBLISH confirmation required'; exit 1; }
-          [[ "$INPUT_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Exact stable vX.Y.Z tag required'; exit 1; }
-          ACTUAL="v$(node -p "require('./package.json').version")"
-          test "$INPUT_VERSION" = "$ACTUAL" || { echo "Input tag and package version mismatch: $INPUT_VERSION vs $ACTUAL"; exit 1; }
+          node scripts/normalize-release-version.mjs "$INPUT_VERSION" >> "$GITHUB_OUTPUT"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo 'Checkout does not match dispatched main commit'; exit 1; }
       - name: Rebuild and verify source and npm packaging
         run: |
@@ -62,11 +63,11 @@ jobs:
       - name: Create immutable release tag and GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INPUT_VERSION: ${{ inputs.version }}
+          RELEASE_TAG: ${{ steps.release_version.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
-          TAG="$INPUT_VERSION"
+          TAG="$RELEASE_TAG"
           if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" > "$RUNNER_TEMP/canary-tag.json" 2>/dev/null; then
             OBJECT_SHA="$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).object.sha" "$RUNNER_TEMP/canary-tag.json")"
             test "$OBJECT_SHA" = "$GITHUB_SHA" || { echo 'Existing tag points to another SHA; refusing to overwrite.'; exit 1; }

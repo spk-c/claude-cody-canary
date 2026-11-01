@@ -24,7 +24,7 @@
   "scripts": {
     "lint": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "check": "npm run version:check && npm run lint && npm test && npm run build && npm run test:security && npm run test:smoke && npm run test:live-safety && npm run test:repro-smoke && npm run docs:check",
+    "check": "npm run version:check && npm run lint && npm test && npm run build && npm run test:security && npm run test:smoke && npm run test:live-safety && npm run test:repro-smoke && npm run test:release-version && npm run docs:check",
     "build": "tsc -p tsconfig.json",
     "test:security": "node --test tests/security-regressions.test.mjs",
     "test:smoke": "node --test tests/integration-smoke.test.mjs",
@@ -33,7 +33,8 @@
     "live:e2e": "node scripts/live-e2e.mjs core",
     "test:live-safety": "node --test tests/live-fixture-safety.test.mjs",
     "check:dist": "node scripts/check-dist-sync.mjs",
-    "test:repro-smoke": "node --test tests/repro-integration.test.mjs"
+    "test:repro-smoke": "node --test tests/repro-integration.test.mjs",
+    "test:release-version": "node --test tests/release-version.test.mjs"
   },
   "keywords": [
     "claude-code",
