@@ -35,7 +35,7 @@ describe('cross-platform Git worktree paths', () => {
       expect(await readFile(path.join(worktree.path, 'tracked.txt'), 'utf8')).toBe('before\n');
       await writeFile(path.join(worktree.path, 'tracked.txt'), 'after\n');
       await writeFile(path.join(worktree.path, 'new untracked.txt'), 'new\n');
-      expect(await getTrackedChanges(worktree.path)).toEqual([' M tracked.txt']);
+      expect((await getTrackedChanges(worktree.path)).map((status) => status.trim())).toEqual(['M tracked.txt']);
       expect(await getChangedFiles(worktree.path)).toEqual(['new untracked.txt', 'tracked.txt']);
       await worktree.cleanup();
       worktree = undefined;
