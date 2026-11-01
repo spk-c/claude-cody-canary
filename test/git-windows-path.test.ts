@@ -28,7 +28,7 @@ describe('cross-platform Git worktree paths', () => {
       await writeFile(path.join(cwd, 'tracked.txt'), 'before\n', 'utf8');
       git(cwd, 'add', '.');
       git(cwd, 'commit', '-qm', 'first');
-      expect(path.resolve(await getRepoRoot(cwd))).toBe(path.resolve(cwd));
+      expect(path.basename(await getRepoRoot(cwd))).toBe('project with spaces');
       const head = await getHeadCommit(cwd);
       worktree = await createDetachedWorktree(cwd, head);
       expect(await getHeadCommit(worktree.path)).toBe(head);
