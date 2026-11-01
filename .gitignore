@@ -1,0 +1,5 @@
+node_modules/
+.canary/
+coverage/
+*.log
+.DS_Store
