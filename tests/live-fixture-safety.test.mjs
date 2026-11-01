@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile, symlink, access, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, writeFile, symlink, access, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { prepareLiveFixture, cleanupLiveFixture, LIVE_FIXTURE_MARKER } from '../scripts/live-fixture-safety.mjs';
 
 async function roots(t) {
-  const base = await mkdtemp(path.join(tmpdir(), 'canary-live-safety-'));
+  const base = await mkdtemp(path.join(await realpath(tmpdir()), 'canary-live-safety-'));
   t.after(() => rm(base, { recursive:true, force:true }));
   const repoRoot = path.join(base, 'repo');
   const workRoot = path.join(base, 'work');
