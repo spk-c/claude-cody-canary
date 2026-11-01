@@ -23,7 +23,7 @@ for (const value of [
   });
 }
 test('rejects a version that does not match the package', () => {
-  assert.throws(() => normalizeReleaseTag('v2.1.1', '2.1.1'), /mismatch/);
+  assert.throws(() => normalizeReleaseTag('v2.1.2', '2.1.1'), /mismatch/);
   assert.throws(() => normalizeReleaseTag('2.0.0', '2.1.1'), /mismatch/);
 });
 test('rejects invalid or prerelease package metadata', () => {
