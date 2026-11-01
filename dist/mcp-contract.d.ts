@@ -3,8 +3,12 @@ export declare const McpContractSchema: z.ZodObject<{
     version: z.ZodLiteral<1>;
     name: z.ZodString;
     server: z.ZodObject<{
-        transport: z.ZodDefault<z.ZodLiteral<"stdio">>;
-        command: z.ZodString;
+        transport: z.ZodDefault<z.ZodEnum<{
+            stdio: "stdio";
+            "streamable-http": "streamable-http";
+        }>>;
+        command: z.ZodOptional<z.ZodString>;
+        url: z.ZodOptional<z.ZodString>;
         args: z.ZodDefault<z.ZodArray<z.ZodString>>;
         cwd: z.ZodOptional<z.ZodString>;
         env: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodString>>;

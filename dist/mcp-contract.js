@@ -24,14 +24,22 @@ export const McpContractSchema = z.object({
     version: z.literal(1),
     name: z.string().min(1),
     server: z.object({
-        transport: z.literal('stdio').default('stdio'),
-        command: z.string().min(1),
+        transport: z.enum(['stdio', 'streamable-http']).default('stdio'),
+        command: z.string().min(1).optional(),
+        url: z.string().url().optional(),
         args: z.array(z.string()).default([]),
         cwd: z.string().min(1).optional(),
         env: z.record(z.string(), z.string()).default({}),
         timeout_seconds: z.number().int().positive().max(300).default(30),
         protocol_version: z.string().min(1).default('2025-11-25'),
-    }).strict(),
+    }).strict().superRefine((server, ctx) => {
+        if (server.transport === 'stdio' && !server.command) {
+            ctx.addIssue({ code: 'custom', message: 'stdio transport requires server.command', path: ['command'] });
+        }
+        if (server.transport === 'streamable-http' && (!server.url || server.protocol_version !== '2026-07-28')) {
+            ctx.addIssue({ code: 'custom', message: 'streamable-http requires server.url and protocol_version 2026-07-28', path: ['url'] });
+        }
+    }),
     expect: z.object({
         tools: toolExpectations.optional(),
         prompts: nameExpectations.optional(),
@@ -288,6 +296,84 @@ class StdioMcpClient {
         });
     }
 }
+/** Read-only modern MCP HTTP inspector. No credential forwarding, redirect following or SSE. */
+class HttpMcpClient {
+    timeoutMs;
+    notifications = { toolsListChanged: 0, promptsListChanged: 0, resourcesListChanged: 0 };
+    url;
+    constructor(endpoint, timeoutMs) {
+        this.timeoutMs = timeoutMs;
+        const url = new URL(endpoint);
+        const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+        if ((url.protocol !== 'https:' && !(loopback && url.protocol === 'http:')) ||
+            url.username || url.password || url.hash) {
+            throw new Error('MCP HTTP requires HTTPS (or explicit loopback HTTP) without URL credentials or fragments.');
+        }
+        this.url = url;
+    }
+    async request(method, params) {
+        const meta = {
+            'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities': {},
+            'io.modelcontextprotocol/clientInfo': { name: 'claude-code-canary', version: CANARY_VERSION },
+        };
+        const response = await fetch(this.url, {
+            method: 'POST',
+            redirect: 'manual',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json, text/event-stream',
+                'MCP-Protocol-Version': '2026-07-28',
+                'Mcp-Method': method,
+            },
+            body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...(params ?? {}), _meta: meta } }),
+            signal: AbortSignal.timeout(this.timeoutMs),
+        });
+        if (!response.ok)
+            throw new Error(`MCP HTTP ${method} failed with HTTP ${response.status}.`);
+        const contentType = response.headers.get('content-type') ?? '';
+        if (!/^application\/json(?:;|$)/i.test(contentType.trim())) {
+            throw new Error('MCP HTTP inspector currently requires application/json responses (SSE is unsupported).');
+        }
+        const maxBytes = 4 * 1024 * 1024;
+        if (Number(response.headers.get('content-length') ?? '0') > maxBytes) {
+            throw new Error('MCP HTTP response exceeded 4 MiB limit.');
+        }
+        const chunks = [];
+        let count = 0;
+        if (!response.body)
+            throw new Error('MCP HTTP response has no body.');
+        for await (const chunk of response.body) {
+            count += chunk.byteLength;
+            if (count > maxBytes) {
+                await response.body.cancel().catch(() => undefined);
+                throw new Error('MCP HTTP response exceeded 4 MiB limit.');
+            }
+            chunks.push(chunk);
+        }
+        const text = Buffer.concat(chunks).toString('utf8');
+        let message;
+        try {
+            message = JSON.parse(text);
+        }
+        catch {
+            throw new Error('MCP HTTP response is not valid JSON.');
+        }
+        if (!isRecord(message) || message.jsonrpc !== '2.0' || message.id !== 1) {
+            throw new Error('MCP HTTP response must match JSON-RPC 2.0 request id.');
+        }
+        if (isRecord(message.error)) {
+            const code = typeof message.error.code === 'number' ? message.error.code : 'unknown';
+            throw new Error(`MCP JSON-RPC request failed (code ${String(code)}).`);
+        }
+        if (!isRecord(message.result) || message.result.resultType !== 'complete') {
+            throw new Error('MCP modern HTTP requires resultType=complete (interactive MRTR not supported).');
+        }
+        return message.result;
+    }
+    notify() { throw new Error('Stateless MCP HTTP has no initialized notification.'); }
+    async close() { }
+}
 function parseContract(value) {
     const parsed = McpContractSchema.safeParse(value);
     if (parsed.success)
@@ -350,7 +436,9 @@ function compatibilitySurface(snapshot) {
 export async function inspectMcpContract(contract, options = {}) {
     const base = options.contractPath ? path.dirname(path.resolve(options.contractPath)) : path.resolve(options.cwd ?? process.cwd());
     const serverCwd = path.resolve(base, contract.server.cwd ?? '.');
-    const client = new StdioMcpClient(contract.server.command, contract.server.args, serverCwd, { ...process.env, ...contract.server.env }, contract.server.timeout_seconds * 1000, contract.server.protocol_version);
+    const client = contract.server.transport === 'streamable-http'
+        ? new HttpMcpClient(contract.server.url, contract.server.timeout_seconds * 1000)
+        : new StdioMcpClient(contract.server.command, contract.server.args, serverCwd, { ...process.env, ...contract.server.env }, contract.server.timeout_seconds * 1000, contract.server.protocol_version);
     try {
         const modern = contract.server.protocol_version === '2026-07-28';
         const initialized = modern
