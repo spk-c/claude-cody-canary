@@ -32,7 +32,7 @@ describe('cross-platform Git worktree paths', () => {
       const head = await getHeadCommit(cwd);
       worktree = await createDetachedWorktree(cwd, head);
       expect(await getHeadCommit(worktree.path)).toBe(head);
-      expect(await readFile(path.join(worktree.path, 'tracked.txt'), 'utf8')).toBe('before\n');
+      expect((await readFile(path.join(worktree.path, 'tracked.txt'), 'utf8')).replace(/\r\n/g, '\n')).toBe('before\n');
       await writeFile(path.join(worktree.path, 'tracked.txt'), 'after\n');
       await writeFile(path.join(worktree.path, 'new untracked.txt'), 'new\n');
       expect((await getTrackedChanges(worktree.path)).map((status) => status.trim())).toEqual(['M tracked.txt']);
