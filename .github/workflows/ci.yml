@@ -27,5 +27,11 @@ jobs:
       - name: Audit production dependencies
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
         run: npm audit --omit=dev --audit-level=high
+      - name: Install actual Claude Code CLI
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: npm install --global @anthropic-ai/claude-code
       - name: Verify package and run regression tests
         run: npm run check
+      - name: Run real Claude Code CLI to MCP stdio server smoke test
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: node scripts/claude-mcp-smoke.mjs
