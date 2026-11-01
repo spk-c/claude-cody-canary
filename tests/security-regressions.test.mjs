@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
 import { createHash, generateKeyPairSync } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, symlink, writeFile, access } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, realpath, symlink, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { preparePermissionProbe } from '../dist/permission-probe.js';
@@ -16,7 +16,7 @@ import { inspectMcpContract, McpContractSchema } from '../dist/mcp-contract.js';
 
 async function temp(t) {
   const { rm } = await import('node:fs/promises');
-  const dir = await mkdtemp(path.join(tmpdir(), 'canary-security-test-'));
+  const dir = await mkdtemp(path.join(await realpath(tmpdir()), 'canary-security-test-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   return dir;
 }

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { access, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -78,7 +78,7 @@ describe('reproduction bundle safety', () => {
   });
 
   it('exports a minimal redacted bundle from the exact base commit and force-replaces only marked bundles', async () => {
-    const repo = await mkdtemp(path.join(tmpdir(), 'cc-canary-repro-test-'));
+    const repo = await mkdtemp(path.join(await realpath(tmpdir()), 'cc-canary-repro-test-'));
     temporaryRoots.push(repo);
     git(repo, 'init', '-q');
     git(repo, 'config', 'user.name', 'Canary Test');

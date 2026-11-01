@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -10,7 +10,7 @@ import {
 } from '../src/pack-discovery.js';
 
 async function packRoot(): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), 'canary-pack-discovery-'));
+  const root = await mkdtemp(path.join(await realpath(os.tmpdir()), 'canary-pack-discovery-'));
   const scenario = 'version: 1\nname: smoke\nprompt: hello\n';
   await writeFile(path.join(root, 'smoke.canary.yml'), scenario, 'utf8');
   const sha = createHash('sha256').update(scenario).digest('hex');

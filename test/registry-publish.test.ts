@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -89,7 +89,7 @@ describe('static compatibility registry publishing', () => {
   });
 
   it('publishes a Pages/Release-ready bundle with stable checksums', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'canary-registry-'));
+    const root = await mkdtemp(path.join(await realpath(os.tmpdir()), 'canary-registry-'));
     const registryFile = await writeRegistry(root);
     const outA = path.join(root, 'out-a');
     const outB = path.join(root, 'out-b');
@@ -113,7 +113,7 @@ describe('static compatibility registry publishing', () => {
   });
 
   it('removes stale generated manifests when republishing a Canary-owned output directory', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'canary-registry-refresh-'));
+    const root = await mkdtemp(path.join(await realpath(os.tmpdir()), 'canary-registry-refresh-'));
     const registryFile = await writeRegistry(root);
     const output = path.join(root, 'site');
     await publishCompatibilityRegistry(registryFile, output);
@@ -126,7 +126,7 @@ describe('static compatibility registry publishing', () => {
   });
 
   it('refuses to clean a non-empty directory it does not own', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'canary-registry-safe-'));
+    const root = await mkdtemp(path.join(await realpath(os.tmpdir()), 'canary-registry-safe-'));
     const registryFile = await writeRegistry(root);
     const output = path.join(root, 'site');
     await mkdir(output);
@@ -137,7 +137,7 @@ describe('static compatibility registry publishing', () => {
   });
 
   it('fails closed on unexpected top-level files even in a Canary-owned directory', async () => {
-    const root = await mkdtemp(path.join(os.tmpdir(), 'canary-registry-unexpected-'));
+    const root = await mkdtemp(path.join(await realpath(os.tmpdir()), 'canary-registry-unexpected-'));
     const registryFile = await writeRegistry(root);
     const output = path.join(root, 'site');
     await publishCompatibilityRegistry(registryFile, output);

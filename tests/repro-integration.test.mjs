@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -11,7 +11,7 @@ function exec(command,args,cwd) {
   return result;
 }
 test('a deterministically failed run generates a real repro bundle without provider credentials',async t=>{
-  const root=await mkdtemp(path.join(tmpdir(),'canary-repro-smoke-'));
+  const root=await mkdtemp(path.join(await realpath(tmpdir()),'canary-repro-smoke-'));
   t.after(()=>rm(root,{recursive:true,force:true}));
   const scenarioDir=path.join(root,'.canary');
   await mkdir(scenarioDir);
