@@ -20,12 +20,23 @@ export interface CachedRunEnvelope {
     createdAt: string;
     result: RunResult;
 }
+/** Short-lived, per-suite content hash memo; file metadata is checked before every reuse. */
+export type CacheDigestMemo = Map<string, {
+    signature: string;
+    digest: string;
+}>;
+/**
+ * Validates a cached file digest against the live inode, size and timestamps.
+ * A change while hashing fails closed rather than caching an unstable digest.
+ */
+export declare function sha256FileMemoized(file: string, memo?: CacheDigestMemo): Promise<string>;
 export declare function buildResultCacheIdentity(options: {
     cwd: string;
     scenarioSource: string;
     executable: string;
     gitRef?: string;
     featureFlags?: unknown;
+    hashMemo?: CacheDigestMemo;
 }): Promise<ResultCacheIdentity>;
 export declare function resultCacheKey(identity: ResultCacheIdentity): string;
 export declare function readCachedRun(cacheRoot: string, identity: ResultCacheIdentity): Promise<RunResult | undefined>;
@@ -33,6 +44,7 @@ export declare function writeCachedRun(cacheRoot: string, identity: ResultCacheI
 export declare function runScenarioWithCache(scenario: Scenario, scenarioPath: string, options?: RunOptions & {
     cacheRoot?: string;
     featureFlags?: unknown;
+    hashMemo?: CacheDigestMemo;
 }): Promise<{
     result: RunResult;
     cacheHit: boolean;

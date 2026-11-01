@@ -258,6 +258,7 @@ export async function runSuite(suitePath, options = {}) {
     const failFast = options.failFast ?? suite.fail_fast;
     const reuseResults = options.reuseResults ?? suite.reuse_results;
     const results = new Array(resolved.length);
+    const hashMemo = new Map();
     let cursor = 0;
     let stop = false;
     const worker = async () => {
@@ -278,6 +279,7 @@ export async function runSuite(suitePath, options = {}) {
                         gitRefOverride: options.gitRefOverride,
                         artifactLabel: options.artifactLabel ? `${options.artifactLabel}-${index + 1}` : undefined,
                         cacheRoot: options.cacheRoot,
+                        hashMemo,
                     });
                     run = cached.result;
                     cacheHit = cached.cacheHit;
