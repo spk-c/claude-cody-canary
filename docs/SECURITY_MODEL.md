@@ -83,7 +83,7 @@ No generic redactor can understand project-specific confidential information. Al
 
 The v1 composite Action converts inputs into a direct CLI argument array; user inputs are not interpolated into the shell command that launches Canary.
 
-Third-party Actions used by this repository are pinned to immutable commit SHAs. CI runs on Linux, Windows and macOS, while CodeQL scans JavaScript/TypeScript changes.
+The published composite Action pins its two third-party Actions to immutable commit SHAs. Repository CI also uses versioned Actions; it runs on Linux, Windows and macOS, while CodeQL scans JavaScript/TypeScript changes.
 
 ### Secrets and pull requests
 

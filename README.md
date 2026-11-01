@@ -12,6 +12,17 @@ GitHub Action from a publicly accessible archive of the original MIT project
 Isolated Git worktrees are not OS sandboxes. Never run untrusted scenarios with
 production credentials or on unrestricted hosts.
 
+## Published release and installation
+
+This fork has a published [v2.1.0 GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.0).
+For **full TypeScript source**, use the GitHub tag's Source code archive.
+The separately attached `claude-code-canary-2.1.0.tgz` is an installable
+package containing built JavaScript, not full source. npm registry publishing
+and a floating `@v2` GitHub Action tag are **not** enabled for this fork.
+
+Use the exact `spk-c/claude-cody-canary@v2.1.0` Action tag.
+See [distribution and consumer verification](docs/DISTRIBUTION.md).
+
 ## Develop and test
 
 Node.js 20+ and Git are required.

@@ -30,7 +30,7 @@ Key guarantees:
 - Existing `run`, `compare`, `bisect`, `pr-check`, baseline, plugin, MCP, experiment, record/replay, agent-team and Doctor workflows remain available.
 - New Action modes include first-class `suite` and `watch` orchestration.
 - `v1` remains the floating Action channel for the v1.x line; v2 releases use `v2`.
-- Release publication requires a successful `Live Claude E2E (full)` run on the exact immutable release commit.
+- This fork publishes GitHub Releases after deterministic source, security, audit and packaging gates. Authenticated `Live Claude E2E (full)` is optional and is **not** claimed to have passed when credentials were not supplied.
 - Public v2 compatibility schemas are explicitly versioned; breaking changes require a new schema/major contract rather than silent mutation.
 
 ## Post-v2 direction
@@ -57,7 +57,7 @@ The next work should deepen usability and ecosystem adoption rather than re-crea
 
 ### v2.3 — Scale
 
-- shard-result merge as a first-class CLI operation;
+- shard-result merge with collision/coverage checks and a stable CI toolchain;
 - more aggressive compatibility-safe local/CI caching;
 - incremental suite planning for large monorepos;
 - bounded DAG-style orchestration for mixed scenario/plugin/MCP suites;

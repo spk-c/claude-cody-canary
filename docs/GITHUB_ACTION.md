@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: SLP-DEV1/claude-code-canary@v2
+      - uses: spk-c/claude-cody-canary@v2.1.0
         with:
           mode: pr-check
           scenario: .canary/basic.canary.yml
@@ -50,6 +50,8 @@ When `base-ref` / `head-ref` are blank, Canary reads the exact base/head SHAs fr
 `pr-check` uses the same Claude executable for both Git refs. It is intended to detect repository changes that preserve the final output but regress configured token, reported-cost, tool-call, permission or hook-sequence thresholds.
 
 `comment-pr` is opt-in. Canary writes one marker-owned bot comment and updates it on reruns rather than adding a new comment for every push. Comment writing is best-effort: a read-only fork token or missing `pull-requests: write` permission does not replace the underlying Canary result.
+
+Do not give provider credentials to untrusted fork PR code. Use trusted branches and isolated runners for model-backed PR scenarios.
 
 See [Pull request regression checks](PR_CHECKS.md) for security and local usage.
 
@@ -64,7 +66,7 @@ claude-canary baseline update .canary/basic.canary.yml
 Commit the generated `.canary/baselines/<scenario-name>.json`, then use:
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: baseline-check
     scenario: .canary/basic.canary.yml
@@ -79,7 +81,7 @@ See [Committed baselines](BASELINES.md).
 MCP contract checks do not require Claude or a model credential. They initialize the configured stdio MCP server directly and compare its exposed protocol surface with explicit expectations and, by default, a committed known-good snapshot.
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: mcp-check
     mcp-contract: .canary/mcp/github.mcp.yml
@@ -114,19 +116,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: SLP-DEV1/claude-code-canary@v2
+      - uses: spk-c/claude-cody-canary@v2.1.0
         with:
           mode: plugin-suite
           plugin: ./my-plugin
           last: 10
 ```
 
-For the immutable v2 launch release use `@v2.0.0` instead of the moving `@v2` compatibility tag. The v1 major channel remains on the v1.x line.
+This fork currently has **no floating `v2` or `v1` tag**. Always use the immutable `spk-c/claude-cody-canary@v2.1.0` tag or a reviewed commit SHA. Model-backed modes require separately configured Claude access.
 
 ## Run a first-class scenario suite
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: suite
     suite: .canary/release.suite.yml
@@ -140,7 +142,7 @@ Suites provide deterministic selection, bounded concurrency, sharding, run budge
 For deterministic CI sharding:
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: suite
     suite: .canary/release.suite.yml
@@ -150,7 +152,7 @@ For deterministic CI sharding:
 ## Watch new Claude Code releases
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: watch
     suite: .canary/release.suite.yml
@@ -162,7 +164,7 @@ Run this mode from a trusted scheduled workflow. Canary stores small non-secret 
 ## Compare two Claude Code releases
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: compare
     scenario: .canary/basic.canary.yml
@@ -175,7 +177,7 @@ Run this mode from a trusted scheduled workflow. Canary stores small non-secret 
 ## Run one scenario
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: run
     scenario: .canary/basic.canary.yml
@@ -184,7 +186,7 @@ Run this mode from a trusted scheduled workflow. Canary stores small non-secret 
 ## Run one plugin scenario across releases
 
 ```yaml
-- uses: SLP-DEV1/claude-code-canary@v2
+- uses: spk-c/claude-cody-canary@v2.1.0
   with:
     mode: plugin-matrix
     scenario: .canary/plugins/my-plugin/command-review.canary.yml

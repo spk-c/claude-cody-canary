@@ -10,7 +10,7 @@ Claude Code Canary launches Claude Code and user-configured setup/verification c
 | older `2.x` | best-effort security fixes when practical |
 | pre-1.0 | ❌ |
 
-Security fixes may require upgrading to the latest compatible v2 release. Version 2.1.0 is not yet backed by a published GitHub Release.
+Security fixes may require upgrading to the latest compatible v2 release. Fork version 2.1.0 is available as a [GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.0). The release is a source-restored fork; its independent official upstream v2 provenance has not been established.
 
 ## Safe usage
 

@@ -4,7 +4,7 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
-### Fork hardening (not yet released)
+### Fork improvements after published v2.1.0
 
 - Restore original TypeScript source and automated tests from a public archival copy.
 - Harden permission instrumentation, worktree assertions, MCP responses, cache results and attestation verification.
@@ -13,6 +13,11 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 - Add reproducible build validation, CodeQL, Dependabot and development-dependency audits.
 - Keep npm publication disabled until a separate scoped package and trusted publisher have been verified.
 
+
+> Fork publication: [v2.1.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.0) on 2026-11-01.
+> The historical upstream notes below are retained for provenance. Their npm,
+> floating-Action-tag and paid-E2E release claims do **not** describe the
+> fork's publishing process; see [distribution](docs/DISTRIBUTION.md).
 
 ## [2.1.0] - 2026-09-08
 

@@ -171,8 +171,8 @@ A declared `listChanged` capability is independently assertable in the contract.
 ```yaml
 - name: Check MCP contract
   run: |
-    npm install --global claude-code-canary
-    claude-canary mcp-check .canary/mcp/github.mcp.yml --require-baseline
+    # Install the verified v2.1.0 Release .tgz in your project first.
+    npx --no-install claude-canary mcp-check .canary/mcp/github.mcp.yml --require-baseline
 ```
 
 Commit the `.mcp.yml` file and its reviewed baseline. Do not commit credentials into the contract; reference only non-secret test-mode environment values and inject real secrets through the CI environment if the server truly needs them.

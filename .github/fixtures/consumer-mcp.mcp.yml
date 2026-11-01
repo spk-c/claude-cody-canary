@@ -1,0 +1,15 @@
+version: 1
+name: release-consumer-fixture
+server:
+  transport: stdio
+  command: node
+  cwd: ../..
+  args:
+    - tests/fixtures/consumer-mcp-server.mjs
+  timeout_seconds: 15
+  protocol_version: 2025-11-25
+expect:
+  tools:
+    require: [ping]
+    require_read_only: [ping]
+    deny_destructive: true

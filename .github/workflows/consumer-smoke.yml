@@ -1,0 +1,78 @@
+name: Clean consumer and published release smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packed-consumer:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Use tested npm version
+        run: npm install --global npm@11.19.1
+      - name: Build a tarball from this exact commit
+        shell: bash
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP"
+      - name: Install package in an empty consumer and exercise CLI/API
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/clean-consumer"
+          npm install --prefix "$RUNNER_TEMP/clean-consumer" "$RUNNER_TEMP/claude-code-canary-2.1.0.tgz" --ignore-scripts --no-audit --no-fund
+          cp tests/fixtures/package-consumer-smoke.mjs "$RUNNER_TEMP/clean-consumer/smoke.mjs"
+          node "$RUNNER_TEMP/clean-consumer/smoke.mjs"
+
+  published-asset:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Download actual immutable public release and checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/released"
+          gh release download v2.1.0 --repo spk-c/claude-cody-canary --dir "$RUNNER_TEMP/released" \
+            --pattern 'claude-code-canary-2.1.0.tgz' --pattern 'SHA256SUMS'
+          cd "$RUNNER_TEMP/released"
+          sha256sum --check SHA256SUMS
+      - name: Install and exercise the downloaded release package
+        run: |
+          mkdir -p "$RUNNER_TEMP/clean-consumer"
+          npm install --prefix "$RUNNER_TEMP/clean-consumer" "$RUNNER_TEMP/released/claude-code-canary-2.1.0.tgz" --ignore-scripts --no-audit --no-fund
+          cp tests/fixtures/package-consumer-smoke.mjs "$RUNNER_TEMP/clean-consumer/smoke.mjs"
+          node "$RUNNER_TEMP/clean-consumer/smoke.mjs"
+
+  tagged-action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test actual released composite Action without an API key
+        id: contract
+        uses: spk-c/claude-cody-canary@v2.1.0
+        with:
+          mode: mcp-check
+          mcp-contract: .github/fixtures/consumer-mcp.mcp.yml
+          mcp-require-baseline: 'false'
+          upload-results: 'false'
+      - name: Require successful offline MCP contract check
+        env:
+          CANARY_PASSED: ${{ steps.contract.outputs.passed }}
+        run: test "$CANARY_PASSED" = true
