@@ -75,33 +75,82 @@ export async function createBundleAttestation(root: string, options: { privateKe
   };
 }
 
-export async function verifyBundleAttestation(root: string, attestation: BundleAttestation, options: { publicKeyPem?: string } = {}): Promise<{ passed: boolean; failures: string[] }> {
+export async function verifyBundleAttestation(
+  root: string,
+  attestation: BundleAttestation,
+  options: { publicKeyPem?: string; attestationPath?: string; exclude?: string[] } = {},
+): Promise<{ passed: boolean; failures: string[] }> {
   const resolved = path.resolve(root);
   const failures: string[] = [];
-  const actual: BundleAttestationFile[] = [];
+  if (!attestation || attestation.schemaVersion !== 1 || !Array.isArray(attestation.files) ||
+    !['sha256', 'ed25519-sha256-manifest'].includes(attestation.algorithm) ||
+    !/^[0-9a-f]{64}$/.test(attestation.manifestHash)) {
+    return { passed: false, failures: ['Invalid attestation envelope.'] };
+  }
+  if ((attestation.algorithm === 'sha256' && attestation.signature !== undefined) ||
+    (attestation.algorithm === 'ed25519-sha256-manifest' && !attestation.signature)) {
+    return { passed: false, failures: ['Attestation signing metadata does not match the declared algorithm.'] };
+  }
+  if (attestation.files.some((file) => !file || typeof file.path !== 'string' ||
+    !/^[0-9a-f]{64}$/.test(file.sha256) || !Number.isSafeInteger(file.bytes) || file.bytes < 0)) {
+    return { passed: false, failures: ['Invalid attested file metadata.'] };
+  }
+  const seen = new Set<string>();
   for (const expected of attestation.files) {
     const normalized = expected.path.replace(/\\/g, '/');
-    if (path.posix.isAbsolute(normalized) || normalized.startsWith('../') || normalized.includes('/../')) {
-      failures.push(`Unsafe attested path: ${expected.path}`);
+    if (!normalized || normalized.includes('\0') || /^[A-Za-z]:\//.test(normalized) ||
+      normalized.startsWith('/') || normalized.split('/').some((segment) =>
+        !segment || segment === '.' || segment === '..') || seen.has(normalized)) {
+      failures.push(`Unsafe or duplicate attested path: ${expected.path}`);
       continue;
     }
-    try { actual.push(await describeFile(resolved, path.join(resolved, normalized))); }
-    catch (error) { failures.push(`Missing/unreadable ${normalized}: ${error instanceof Error ? error.message : String(error)}`); }
+    seen.add(normalized);
+    try {
+      const absolute = path.join(resolved, normalized);
+      let parent = path.dirname(absolute);
+      while (parent !== resolved && parent.startsWith(`${resolved}${path.sep}`)) {
+        if ((await lstat(parent)).isSymbolicLink()) throw new Error(`Symlinked ancestor: ${parent}`);
+        parent = path.dirname(parent);
+      }
+      const actual = await describeFile(resolved, absolute);
+      if (expected.sha256 !== actual.sha256 || expected.bytes !== actual.bytes)
+        failures.push(`Integrity mismatch: ${normalized}`);
+    } catch (error) {
+      failures.push(`Missing/unreadable ${normalized}: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
-  const expectedByPath = new Map(attestation.files.map((file) => [file.path, file]));
-  for (const file of actual) {
-    const expected = expectedByPath.get(file.path);
-    if (!expected || expected.sha256 !== file.sha256 || expected.bytes !== file.bytes) failures.push(`Integrity mismatch: ${file.path}`);
+  const ignored = new Set((options.exclude ?? []).map((item) => item.replace(/\\/g, '/')));
+  if (options.attestationPath) {
+    const relative = path.relative(resolved, path.resolve(options.attestationPath)).replace(/\\/g, '/');
+    if (relative && !relative.startsWith('../') && !path.isAbsolute(relative)) ignored.add(relative);
   }
+  const visit = async (directory: string): Promise<void> => {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      const relative = path.relative(resolved, absolute).replace(/\\/g, '/');
+      if (ignored.has(relative)) continue;
+      if (entry.isSymbolicLink()) failures.push(`Unexpected symlink in attested bundle: ${relative}`);
+      else if (entry.isDirectory()) await visit(absolute);
+      else if (entry.isFile() && !seen.has(relative)) failures.push(`Unattested bundle file: ${relative}`);
+      else if (!entry.isFile() && !entry.isDirectory()) failures.push(`Unexpected bundle entry: ${relative}`);
+    }
+  };
+  await visit(resolved);
   const payload = manifestBytes(attestation.files);
   const hash = createHash('sha256').update(payload).digest('hex');
   if (hash !== attestation.manifestHash) failures.push('Attestation manifest hash is invalid.');
   if (attestation.signature) {
     if (!options.publicKeyPem) failures.push('Attestation is signed but no public key was provided.');
     else {
-      const publicKey = createPublicKey(options.publicKeyPem);
-      if (attestation.publicKeyFingerprint && publicFingerprint(publicKey) !== attestation.publicKeyFingerprint) failures.push('Public key fingerprint does not match attestation.');
-      if (!verify(null, payload, publicKey, Buffer.from(attestation.signature, 'base64'))) failures.push('Ed25519 signature verification failed.');
+      try {
+        const publicKey = createPublicKey(options.publicKeyPem);
+        if (attestation.publicKeyFingerprint && publicFingerprint(publicKey) !== attestation.publicKeyFingerprint)
+          failures.push('Public key fingerprint does not match attestation.');
+        if (!verify(null, payload, publicKey, Buffer.from(attestation.signature, 'base64')))
+          failures.push('Ed25519 signature verification failed.');
+      } catch {
+        failures.push('Invalid attestation public key or signature.');
+      }
     }
   }
   return { passed: failures.length === 0, failures };
