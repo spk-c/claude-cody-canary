@@ -16,10 +16,5 @@ export interface RunOptions {
 }
 export declare function buildClaudeArgs(scenario: Scenario, extraClaudeArgs?: string[]): string[];
 export declare function filterFixtureChanges(worktreePath: string, changedFiles: string[], fixtureState?: Record<string, string | null>): Promise<string[]>;
-/**
- * Only expose an allowlisted *category* in portable artifacts. Claude stderr and
- * stream-json can contain prompts, credentials and environment values.
- */
-export declare function classifyClaudeFailure(output: string): string | undefined;
 export declare function runScenario(scenario: Scenario, options?: RunOptions): Promise<RunResult>;
 //# sourceMappingURL=runner.d.ts.map

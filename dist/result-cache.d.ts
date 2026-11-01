@@ -2,7 +2,8 @@ import type { Scenario } from './config.js';
 import { type RunOptions } from './runner.js';
 import type { RunResult } from './types.js';
 export interface ResultCacheIdentity {
-    schemaVersion: 1;
+    schemaVersion: 2;
+    runtimeConfigHash: string;
     scenarioHash: string;
     gitCommit: string;
     executableSha256: string;
@@ -13,7 +14,7 @@ export interface ResultCacheIdentity {
     featureFlagsHash: string;
 }
 export interface CachedRunEnvelope {
-    schemaVersion: 1;
+    schemaVersion: 2;
     key: string;
     identity: ResultCacheIdentity;
     createdAt: string;

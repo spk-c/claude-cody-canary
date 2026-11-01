@@ -84,10 +84,8 @@ function handle(message) {
 
     trace(toolName, toolUseId);
 
-    // This tool observes requests; it must NEVER authorize tool execution.
-    // A test that needs permissive behavior must explicitly configure Claude
-    // in an isolated environment, rather than receiving it from instrumentation.
-    const decision = { behavior: 'deny', message: 'Claude Canary permission probe is observational and does not approve tool execution.' };
+    // Instrumentation is observational; never auto-authorize requested actions.
+    const decision = { behavior: 'deny', message: 'Claude Canary permission probe does not approve tools.' };
 
     send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(decision) }], isError: false } });
     return;

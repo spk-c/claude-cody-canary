@@ -380,8 +380,6 @@ function buildReadme(scenario, baseCommit, state) {
 }
 const SH_LAUNCHER = `#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\ncd "$SCRIPT_DIR/fixture"\nif [ ! -d .git ]; then\n  git init -q\n  git add -A\n  git -c user.name='Claude Canary Repro' -c user.email='repro@example.invalid' commit -qm 'fixture baseline' --allow-empty\nfi\nclaude-canary run ../scenario.canary.yml\n`;
 const PS_LAUNCHER = `$ErrorActionPreference = 'Stop'\n$Root = Split-Path -Parent $MyInvocation.MyCommand.Path\nSet-Location (Join-Path $Root 'fixture')\nif (-not (Test-Path '.git')) {\n  git init -q\n  git add -A\n  git -c user.name='Claude Canary Repro' -c user.email='repro@example.invalid' commit -qm 'fixture baseline' --allow-empty\n}\nclaude-canary run ../scenario.canary.yml\n`;
-// Canonicalize existing ancestors to handle Windows 8.3 short names (e.g.
-// RUNNER~1) and long names consistently. Preserve not-yet-created suffixes.
 async function canonicalPath(target) {
     let current = path.resolve(target);
     const missing = [];
@@ -390,9 +388,11 @@ async function canonicalPath(target) {
             return path.resolve(await realpath(current), ...missing.reverse());
         }
         catch (error) {
-            if (error?.code !== 'ENOENT') throw error;
+            if (error?.code !== 'ENOENT')
+                throw error;
             const parent = path.dirname(current);
-            if (parent === current) throw error;
+            if (parent === current)
+                throw error;
             missing.push(path.basename(current));
             current = parent;
         }
@@ -408,12 +408,12 @@ async function ensureSafeReproDestination(repoRoot, output) {
     for (const component of output.slice(current.length).split(path.sep).filter(Boolean)) {
         current = path.join(current, component);
         try {
-            if ((await lstat(current)).isSymbolicLink()) {
+            if ((await lstat(current)).isSymbolicLink())
                 throw new Error(`Refusing repro output path containing symlink: ${current}`);
-            }
         }
         catch (error) {
-            if (error?.code !== 'ENOENT') throw error;
+            if (error?.code !== 'ENOENT')
+                throw error;
         }
     }
 }
@@ -433,8 +433,10 @@ export async function createReproBundle(resultPath, options = {}) {
         if (!options.force)
             throw new Error(`Repro output already exists: ${output}. Use --force to replace it.`);
         let marker;
-        try { marker = await readFile(path.join(output, REPRO_MARKER), 'utf8'); }
-        catch { /* Unowned directory: leave it untouched. */ }
+        try {
+            marker = await readFile(path.join(output, REPRO_MARKER), 'utf8');
+        }
+        catch { /* Unowned directory. */ }
         if (marker !== REPRO_MARKER_CONTENT)
             throw new Error(`Refusing to remove directory without Canary repro ownership marker: ${output}`);
         await rm(output, { recursive: true, force: true });

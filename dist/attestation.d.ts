@@ -18,6 +18,8 @@ export declare function createBundleAttestation(root: string, options?: {
 }): Promise<BundleAttestation>;
 export declare function verifyBundleAttestation(root: string, attestation: BundleAttestation, options?: {
     publicKeyPem?: string;
+    attestationPath?: string;
+    exclude?: string[];
 }): Promise<{
     passed: boolean;
     failures: string[];

@@ -10,16 +10,10 @@ async function exists(filePath) {
         return false;
     }
 }
-/**
- * Scenario assertions are read-only and may be supplied by third-party test
- * packs. Do not allow them to inspect files outside the disposable worktree.
- */
 async function assertionPath(worktree, candidate) {
     const normalized = candidate.replace(/\\/g, '/');
     if (!normalized || normalized.includes('\0') || normalized.startsWith('/') ||
-        path.win32.isAbsolute(candidate) || normalized.split('/').some((segment) =>
-            !segment || segment === '.' || segment === '..' ||
-            segment === '.git' || segment.includes(':'))) {
+        path.win32.isAbsolute(candidate) || normalized.split('/').some((segment) => !segment || segment === '.' || segment === '..' || segment === '.git' || segment.includes(':'))) {
         throw new Error('Unsafe assertion path.');
     }
     let current = path.resolve(worktree);
@@ -27,10 +21,12 @@ async function assertionPath(worktree, candidate) {
         current = path.join(current, segment);
         try {
             const info = await lstat(current);
-            if (info.isSymbolicLink()) throw new Error('Symlinked assertion path.');
+            if (info.isSymbolicLink())
+                throw new Error('Symlinked assertion path.');
         }
         catch (error) {
-            if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') break;
+            if (['ENOENT', 'ENOTDIR'].includes(error?.code ?? ''))
+                break;
             throw error;
         }
     }
@@ -100,7 +96,7 @@ export async function evaluateExpectations(scenario, worktree, changedFiles, met
             const file = await assertionPath(worktree, assertion.path);
             const info = await lstat(file);
             if (!info.isFile() || info.size > 4 * 1024 * 1024)
-                throw new Error('Not a regular file or file exceeds 4 MiB.');
+                throw new Error('Unsafe or oversized file.');
             const content = await readFile(file, 'utf8');
             if (!content.includes(assertion.text))
                 failures.push(`File ${assertion.path} does not contain expected text`);

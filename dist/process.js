@@ -1,43 +1,5 @@
 import { spawn } from 'node:child_process';
 const DEFAULT_MAX_OUTPUT_CHARS = 16 * 1024 * 1024;
-/**
- * On POSIX, every child starts in its own process group, allowing a timeout to
- * terminate shell/grandchild processes as well as Claude itself.
- * Windows needs taskkill /T, because killing a parent PID leaves children alive.
- */
-function killProcessTree(child) {
-    if (!child.pid) {
-        child.kill('SIGKILL');
-        return;
-    }
-    if (process.platform === 'win32') {
-        try {
-            const killer = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
-                stdio: 'ignore', windowsHide: true,
-            });
-            killer.once('error', () => { try {
-                child.kill('SIGKILL');
-            }
-            catch { /* exited */ } });
-        }
-        catch {
-            try {
-                child.kill('SIGKILL');
-            }
-            catch { /* exited */ }
-        }
-        return;
-    }
-    try {
-        process.kill(-child.pid, 'SIGKILL');
-    }
-    catch {
-        try {
-            child.kill('SIGKILL');
-        }
-        catch { /* already exited */ }
-    }
-}
 export async function spawnCapture(executable, args, options) {
     const started = Date.now();
     const maxOutputChars = options.maxOutputChars ?? DEFAULT_MAX_OUTPUT_CHARS;
@@ -66,7 +28,6 @@ export async function spawnCapture(executable, args, options) {
                 env: options.env ?? process.env,
                 shell: false,
                 windowsHide: true,
-                detached: process.platform !== 'win32',
                 stdio: ['ignore', 'pipe', 'pipe'],
             });
         }
@@ -89,7 +50,7 @@ export async function spawnCapture(executable, args, options) {
             const remaining = maxOutputChars - used;
             if (remaining <= 0) {
                 outputTruncated = true;
-                killProcessTree(child);
+                child.kill('SIGKILL');
                 return;
             }
             const accepted = text.slice(0, remaining);
@@ -99,7 +60,7 @@ export async function spawnCapture(executable, args, options) {
                 stderr += accepted;
             if (accepted.length < text.length) {
                 outputTruncated = true;
-                killProcessTree(child);
+                child.kill('SIGKILL');
             }
         };
         child.stdout?.setEncoding('utf8');
@@ -122,7 +83,7 @@ export async function spawnCapture(executable, args, options) {
         if (options.timeoutMs && options.timeoutMs > 0) {
             timer = setTimeout(() => {
                 timedOut = true;
-                killProcessTree(child);
+                child.kill('SIGKILL');
             }, options.timeoutMs);
             timer.unref();
         }

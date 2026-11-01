@@ -75,43 +75,18 @@ function validateResolvedVersion(value, source) {
         throw new Error(`Invalid Claude Code version returned for ${source}: ${JSON.stringify(version)}`);
     return version;
 }
-/** Bounded stream: do not buffer an attacker-controlled response before enforcing its limit. */
-export async function fetchBytes(url, maxBytes = MAX_METADATA_BYTES) {
-    const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(30_000) });
+async function fetchBytes(url, maxBytes = MAX_METADATA_BYTES) {
+    const response = await fetch(url, { redirect: 'follow' });
     if (!response.ok)
         throw new Error(`HTTP ${response.status} while fetching ${url}`);
     const declaredLength = Number(response.headers.get('content-length'));
     if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-        await response.body?.cancel();
         throw new Error(`Response too large while fetching ${url}: ${declaredLength} bytes exceeds ${maxBytes}.`);
     }
-    if (!response.body)
-        throw new Error(`Empty response body while fetching ${url}`);
-    const reader = response.body.getReader();
-    const chunks = [];
-    let total = 0;
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done)
-                break;
-            total += value.byteLength;
-            if (total > maxBytes)
-                throw new Error(`Response too large while fetching ${url}: exceeds ${maxBytes} bytes.`);
-            chunks.push(value);
-        }
-    }
-    finally {
-        await reader.cancel().catch(() => undefined);
-        reader.releaseLock();
-    }
-    const output = new Uint8Array(total);
-    let offset = 0;
-    for (const chunk of chunks) {
-        output.set(chunk, offset);
-        offset += chunk.byteLength;
-    }
-    return output;
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > maxBytes)
+        throw new Error(`Response too large while fetching ${url}: exceeds ${maxBytes} bytes.`);
+    return bytes;
 }
 async function fetchText(url) {
     return new TextDecoder().decode(await fetchBytes(url));
@@ -173,7 +148,7 @@ async function hashFile(file) {
     return { checksum: hash.digest('hex'), bytes };
 }
 async function downloadBinary(url, destination, expectedSize) {
-    const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(5 * 60_000) });
+    const response = await fetch(url, { redirect: 'follow' });
     if (!response.ok || !response.body)
         throw new Error(`HTTP ${response.status} while downloading ${url}`);
     const maxBytes = expectedSize ?? MAX_BINARY_BYTES;

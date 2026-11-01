@@ -26,19 +26,19 @@ function safeRelative(value) {
     }
     return normalized;
 }
-async function assertNoSymlinkComponents(absolute) {
-    const resolved = path.resolve(absolute);
+async function assertNoSymlinkComponents(target) {
+    const resolved = path.resolve(target);
     let current = path.parse(resolved).root;
     for (const part of resolved.slice(current.length).split(path.sep).filter(Boolean)) {
         current = path.join(current, part);
         try {
             const stat = await lstat(current);
-            if (stat.isSymbolicLink()) {
+            if (stat.isSymbolicLink())
                 throw new Error(`Refusing scenario pack path containing a symlink: ${current}`);
-            }
         }
         catch (error) {
-            if (error?.code !== 'ENOENT') throw error;
+            if (error?.code !== 'ENOENT')
+                throw error;
         }
     }
 }
@@ -84,7 +84,6 @@ export async function installScenarioPack(sourceRoot, targetRoot, options = {}) 
         await assertNoSymlinkComponents(destination);
         await mkdir(path.dirname(destination), { recursive: true });
         await assertNoSymlinkComponents(destination);
-        // Even --force may overwrite only existing regular files, never links.
         if (options.force) {
             try {
                 const info = await lstat(destination);
@@ -92,7 +91,8 @@ export async function installScenarioPack(sourceRoot, targetRoot, options = {}) 
                     throw new Error(`Refusing non-regular scenario pack destination: ${relative}`);
             }
             catch (error) {
-                if (error?.code !== 'ENOENT') throw error;
+                if (error?.code !== 'ENOENT')
+                    throw error;
             }
         }
         if (!options.force) {

@@ -21,8 +21,6 @@ export declare function isExactVersion(value: string): boolean;
 export declare function validatePlatformId(value: string): string;
 export declare function platformId(platform?: NodeJS.Platform, arch?: string, musl?: boolean): string;
 export declare function defaultVersionCacheRoot(): string;
-/** Bounded stream: do not buffer an attacker-controlled response before enforcing its limit. */
-export declare function fetchBytes(url: string, maxBytes?: number): Promise<Uint8Array>;
 export declare function resolveClaudeVersion(spec: string): Promise<string>;
 export declare function installClaudeVersion(spec: string, options?: InstallVersionOptions): Promise<InstalledClaudeVersion>;
 export declare function cachedClaudePath(version: string, options?: Pick<InstallVersionOptions, 'platform' | 'cacheRoot'>): Promise<string>;
