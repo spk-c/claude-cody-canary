@@ -52,6 +52,11 @@ export function combineVerifiedShards(shards) {
   requireRecord(first, 'First shard');
   const expected = shardNumber(first.shard).total;
   if (shards.length !== expected) throw new Error(`Expected ${expected} shards, received ${shards.length}.`);
+  const identities = shards.map(part => part?.executionIdentity);
+  if (identities.some(value => value !== undefined) &&
+      (identities.some(value => typeof value !== 'string' || !/^[0-9a-f]{64}$/.test(value)) || new Set(identities).size !== 1)) {
+    throw new Error('Missing or mismatched executionIdentity between suite shards.');
+  }
   const seenShards = new Set();
   let universe;
   let nonShardSkips;
@@ -124,6 +129,7 @@ export function combineVerifiedShards(shards) {
   combined.tag = first.tag;
   combined.executable = first.executable;
   combined.discoveredTotal = first.discoveredTotal;
+  combined.executionIdentity = identities[0];
   combined.passed = combined.passed && shards.every(s=>s.passed);
   if (combined.total + combined.skippedBySelection !== combined.discoveredTotal) {
     throw new Error('Merged scenario count does not cover discovered suite.');
