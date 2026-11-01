@@ -1,4 +1,4 @@
-import { access, chmod, lstat, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, chmod, lstat, mkdir, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { arch, platform } from 'node:os';
 import path from 'node:path';
 import YAML from 'yaml';
@@ -380,11 +380,29 @@ function buildReadme(scenario, baseCommit, state) {
 }
 const SH_LAUNCHER = `#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\ncd "$SCRIPT_DIR/fixture"\nif [ ! -d .git ]; then\n  git init -q\n  git add -A\n  git -c user.name='Claude Canary Repro' -c user.email='repro@example.invalid' commit -qm 'fixture baseline' --allow-empty\nfi\nclaude-canary run ../scenario.canary.yml\n`;
 const PS_LAUNCHER = `$ErrorActionPreference = 'Stop'\n$Root = Split-Path -Parent $MyInvocation.MyCommand.Path\nSet-Location (Join-Path $Root 'fixture')\nif (-not (Test-Path '.git')) {\n  git init -q\n  git add -A\n  git -c user.name='Claude Canary Repro' -c user.email='repro@example.invalid' commit -qm 'fixture baseline' --allow-empty\n}\nclaude-canary run ../scenario.canary.yml\n`;
+// Canonicalize existing ancestors to handle Windows 8.3 short names (e.g.
+// RUNNER~1) and long names consistently. Preserve not-yet-created suffixes.
+async function canonicalPath(target) {
+    let current = path.resolve(target);
+    const missing = [];
+    for (;;) {
+        try {
+            return path.resolve(await realpath(current), ...missing.reverse());
+        }
+        catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+            const parent = path.dirname(current);
+            if (parent === current) throw error;
+            missing.push(path.basename(current));
+            current = parent;
+        }
+    }
+}
 async function ensureSafeReproDestination(repoRoot, output) {
-    const relative = path.relative(repoRoot, output);
+    const relative = path.relative(await canonicalPath(repoRoot), await canonicalPath(output));
     if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) ||
         path.isAbsolute(relative) || relative.split(path.sep).includes('.git')) {
-        throw new Error('Repro destination must be a subdirectory inside the repository, excluding .git. (' + JSON.stringify({ repoRoot, output, relative }) + ')');
+        throw new Error('Repro destination must be a subdirectory inside the repository, excluding .git.');
     }
     let current = path.parse(output).root;
     for (const component of output.slice(current.length).split(path.sep).filter(Boolean)) {
