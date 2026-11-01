@@ -32,7 +32,7 @@ jobs:
             echo "::error::Run authenticated E2E only from the protected/default main branch."
             exit 1
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           persist-credentials: false
