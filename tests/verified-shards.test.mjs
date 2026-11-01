@@ -19,6 +19,7 @@ function fixtures(count=12, parts=3, { fail=false, filtered=false }={}) {
       schemaVersion:1,suite:'large-suite',suitePath:'.canary/suite.yml',
       createdAt:'2026-01-01T00:00:00Z',shard:`${i+1}/${parts}`,
       tag:filtered?'smoke':undefined,passed:scenarios.every(s=>s.passed),
+      executionIdentity: 'a'.repeat(64),
       total:scenarios.length,discoveredTotal:count,
       passedCount:scenarios.filter(s=>s.passed).length,
       failedCount:scenarios.filter(s=>!s.passed).length,
@@ -45,6 +46,11 @@ test('preserves true failing scenarios without claiming an all-pass result',()=>
   const result=combineVerifiedShards(fixtures(12,3,{fail:true}));
   assert.equal(result.passed,false);
   assert.equal(result.failedCount,1);
+});
+test('rejects incompatible shard execution identities',()=>{
+  const a=fixtures();
+  assert.throws(()=>combineVerifiedShards([{...a[0],executionIdentity:'b'.repeat(64)},a[1],a[2]]),/executionIdentity/);
+  assert.throws(()=>combineVerifiedShards([{...a[0],executionIdentity:undefined},a[1],a[2]]),/executionIdentity/);
 });
 test('rejects missing, duplicate, and incompatible shards',()=>{
   const a=fixtures();

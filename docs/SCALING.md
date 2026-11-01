@@ -42,10 +42,14 @@ scenario and does not overwrite an existing output. The underlying
 `claude-canary suite combine` remains available, but is a low-level
 aggregation that does not enforce these global coverage guarantees.
 
-**Important:** Never combine results from different Git commits, Claude
-versions or runtime policies. The current suite format has no required,
-immutable cross-shard execution identity. This wrapper verifies its available
-metadata and coverage, but callers must pin build/commit/runtime externally.
+**Important:** New `suite --shard` runs now include an `executionIdentity`
+SHA-256 binding the Git commit, full suite definition, discovered scenarios,
+tag/affected-path filter, platform/Node major, Canary version and hashed
+provider environment. The strict merge refuses partial/mismatched identities.
+For older v2.1.1 suite results without that field, the compatibility path
+still validates coverage, but you must externally enforce identical
+Git/Claude/runtime settings. Never merge artifacts from different machines
+or executions without checking this identity and the actual tool version.
 
 ## Cache without stale-result risk
 

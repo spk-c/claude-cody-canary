@@ -235,7 +235,7 @@ class StdioMcpClient {
     resourcesListChanged: 0,
   };
 
-  constructor(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, private readonly timeoutMs: number) {
+  constructor(command: string, args: string[], cwd: string, env: NodeJS.ProcessEnv, private readonly timeoutMs: number, private readonly statelessProtocol?: string) {
     this.child = spawn(command, args, {
       cwd,
       env,
@@ -314,6 +314,12 @@ class StdioMcpClient {
       const code = typeof message.error.code === 'number' ? message.error.code : 'unknown';
       pending.reject(new Error(`MCP JSON-RPC request failed (code ${String(code)}).`));
     } else {
+      if (this.statelessProtocol === '2026-07-28') {
+        if (!isRecord(message.result) || message.result.resultType !== 'complete') {
+          pending.reject(new Error('MCP 2026 response is missing resultType=complete; interactive input_required is not supported in read-only inspection.'));
+          return;
+        }
+      }
       pending.resolve(message.result);
     }
   }
@@ -334,7 +340,17 @@ class StdioMcpClient {
       timer.unref();
       this.pending.set(id, { resolve, reject, timer });
       try {
-        this.write({ jsonrpc: '2.0', id, method, ...(params ? { params } : {}) });
+        const requestParams = this.statelessProtocol === '2026-07-28'
+          ? {
+              ...(params ?? {}),
+              _meta: {
+                'io.modelcontextprotocol/protocolVersion': this.statelessProtocol,
+                'io.modelcontextprotocol/clientCapabilities': {},
+                'io.modelcontextprotocol/clientInfo': { name: 'claude-code-canary', version: CANARY_VERSION },
+              },
+            }
+          : params;
+        this.write({ jsonrpc: '2.0', id, method, ...(requestParams ? { params: requestParams } : {}) });
       } catch (error) {
         clearTimeout(timer);
         this.pending.delete(id);
@@ -428,20 +444,36 @@ export async function inspectMcpContract(contract: McpContract, options: { cwd?:
     serverCwd,
     { ...process.env, ...contract.server.env },
     contract.server.timeout_seconds * 1000,
+    contract.server.protocol_version,
   );
 
   try {
-    const initialized = await client.request('initialize', {
-      protocolVersion: contract.server.protocol_version,
-      capabilities: {},
-      clientInfo: { name: 'claude-code-canary', version: CANARY_VERSION },
-    });
-    if (!isRecord(initialized)) throw new Error('MCP initialize returned a non-object result.');
-    const protocolVersion = initialized.protocolVersion;
-    if (typeof protocolVersion !== 'string' || !protocolVersion) throw new Error('MCP initialize result is missing protocolVersion.');
+    const modern = contract.server.protocol_version === '2026-07-28';
+    const initialized = modern
+      ? await client.request('server/discover')
+      : await client.request('initialize', {
+          protocolVersion: contract.server.protocol_version,
+          capabilities: {},
+          clientInfo: { name: 'claude-code-canary', version: CANARY_VERSION },
+        });
+    if (!isRecord(initialized)) throw new Error('MCP server discovery/initialize returned a non-object result.');
+    let protocolVersion: string;
+    if (modern) {
+      const advertised = initialized.supportedVersions;
+      if (!Array.isArray(advertised) || !advertised.includes('2026-07-28')) {
+        throw new Error('MCP server/discover did not advertise the requested 2026-07-28 protocol version.');
+      }
+      protocolVersion = '2026-07-28';
+    } else {
+      if (typeof initialized.protocolVersion !== 'string' || !initialized.protocolVersion) {
+        throw new Error('MCP initialize result is missing protocolVersion.');
+      }
+      protocolVersion = initialized.protocolVersion;
+      client.notify('notifications/initialized');
+    }
     const capabilities = isRecord(initialized.capabilities) ? normalizeJson(initialized.capabilities) as Record<string, unknown> : {};
-    const serverInfo = isRecord(initialized.serverInfo) ? normalizeJson(initialized.serverInfo) as Record<string, unknown> : undefined;
-    client.notify('notifications/initialized');
+    const identity = modern ? valueAt(initialized, ['_meta', 'io.modelcontextprotocol/serverInfo']) : initialized.serverInfo;
+    const serverInfo = isRecord(identity) ? normalizeJson(identity) as Record<string, unknown> : undefined;
 
     const tools = valueAt(capabilities, ['tools']) === undefined
       ? []
@@ -459,7 +491,7 @@ export async function inspectMcpContract(contract: McpContract, options: { cwd?:
           .map(normalizeResourceTemplate)
           .sort((a, b) => a.uriTemplate.localeCompare(b.uriTemplate));
       } catch (error) {
-        if (!(error instanceof Error) || !/JSON-RPC error -32601/.test(error.message)) throw error;
+        if (!(error instanceof Error) || !/code -32601/.test(error.message)) throw error;
       }
     }
 

@@ -77,6 +77,8 @@ export interface SuiteRunResult {
     failedCount: number;
     infrastructureFailedCount: number;
     cacheHitCount: number;
+    /** SHA-256 of the shared execution configuration for strict shard merging. */
+    executionIdentity?: string;
     skippedBySelection: number;
     skipped: SkippedSuiteScenario[];
     shard?: string;
@@ -96,6 +98,12 @@ declare function parseShard(value?: string): {
 export declare function explainSuiteSelection(suite: ScenarioSuite, options?: Pick<SuiteRunOptions, 'cwd' | 'tag' | 'shard' | 'changedPaths'>): Promise<SuiteSelection>;
 export declare function resolveSuiteScenarios(suite: ScenarioSuite, options?: Pick<SuiteRunOptions, 'cwd' | 'tag' | 'shard' | 'changedPaths'>): Promise<ResolvedSuiteScenario[]>;
 declare function formatSuiteMarkdown(result: SuiteRunResult): string;
+/**
+ * Shared shard identity binds the exact repo commit, full discovered suite
+ * definition, selection filters, runtime and hashed provider environment.
+ * It excludes shard N/M by design, enabling valid distributed aggregation.
+ */
+export declare function suiteExecutionIdentity(absoluteSuitePath: string, selection: SuiteSelection, options: SuiteRunOptions, cwd: string): Promise<string>;
 export declare function runSuite(suitePath: string, options?: SuiteRunOptions): Promise<SuiteRunResult>;
 export declare function combineSuiteResults(results: SuiteRunResult[]): SuiteRunResult;
 export { formatSuiteMarkdown, parseShard };
