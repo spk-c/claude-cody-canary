@@ -16,6 +16,8 @@ on:
 permissions:
   contents: write
   actions: read
+  attestations: write
+  id-token: write
 
 concurrency:
   group: claude-canary-publish
@@ -60,6 +62,10 @@ jobs:
           npm pack --ignore-scripts --pack-destination release-assets
           cd release-assets
           sha256sum *.tgz > SHA256SUMS
+      - name: Attest release archive build provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: release-assets/*.tgz
       - name: Create immutable release tag and GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

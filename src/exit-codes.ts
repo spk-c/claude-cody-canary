@@ -14,7 +14,7 @@ export function exitCodeForSuite(result: { passed: boolean; infrastructureFailed
 }
 
 export function exitCodeForWatch(status: string, infrastructureFailedCount = 0): CanaryExitCodeValue {
-  if (infrastructureFailedCount > 0) return CanaryExitCode.infrastructure;
+  if (infrastructureFailedCount > 0 || status === 'infrastructure-error') return CanaryExitCode.infrastructure;
   if (status === 'regression') return CanaryExitCode.regression;
   return CanaryExitCode.success;
 }

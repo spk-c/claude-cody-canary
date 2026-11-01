@@ -83,3 +83,16 @@ with:
 The example gives the workflow only `contents: read`. The upstream checkout/cache actions are pinned to immutable commit SHAs. The Canary Action uses the documented `v2` major channel so consumers receive compatible v2 fixes; repositories that require full supply-chain pinning can replace that tag with a reviewed immutable Canary commit SHA.
 
 Do not persist API keys, prompts, transcripts or arbitrary environment dumps in the watch-state cache. Canary's state file contains only the release cursor and status metadata; normal portable result/evidence privacy rules still apply.
+
+## Retry semantics (after v2.1.1)
+
+Successful candidates advance `lastKnownGood` and clear any pending version.
+A deterministic regression keeps a `pendingVersion`, so subsequent scheduled
+checks **retest** the same release even without a newer registry version.
+Infrastructure failures (install errors, timeouts, and incomplete scenario
+suites) return exit code **3** and do not persist any watch-state changes;
+failed candidates cannot be marked compatible. The scheduled workflow only
+saves state for successful checks or deterministic regressions.
+If a failing candidate repeats, investigate flakiness before interpreting
+bisect boundaries. A `--check-only` run reports pending retries without
+running the model or mutating state.

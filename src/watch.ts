@@ -13,10 +13,12 @@ const WatchStateSchema = z.object({
   lastKnownGood: z.string().regex(/^\d+\.\d+\.\d+$/),
   updatedAt: z.string().min(1),
   lastResult: z.enum(['initialized', 'compatible', 'regression']).optional(),
+  /** A regression remains retryable until a candidate passes all scenarios. */
+  pendingVersion: z.string().regex(/^\d+\.\d+\.\d+$/).optional(),
 }).strict();
 
 export type WatchState = z.infer<typeof WatchStateSchema>;
-export type WatchStatus = 'initialized' | 'no-change' | 'new-release' | 'compatible' | 'regression';
+export type WatchStatus = 'initialized' | 'no-change' | 'new-release' | 'compatible' | 'regression' | 'infrastructure-error';
 
 export interface WatchOptions {
   cwd?: string;
@@ -43,6 +45,7 @@ export interface WatchResult {
   candidate?: string;
   firstBadRelease?: string;
   firstFailingScenario?: string;
+  infrastructureError?: string;
   suite?: SuiteRunResult;
   statePath: string;
   jsonArtifactPath?: string;
@@ -77,6 +80,7 @@ function formatWatchMarkdown(result: WatchResult): string {
   if (result.candidate) lines.push(`**Candidate:** \`${result.candidate}\``);
   if (result.firstBadRelease) lines.push(`**First bad release:** \`${result.firstBadRelease}\``);
   if (result.firstFailingScenario) lines.push(`**First failing scenario:** \`${result.firstFailingScenario}\``);
+  if (result.infrastructureError) lines.push('**Infrastructure error:** test attempt incomplete; state not advanced (details suppressed).');
   if (result.unseen.length) lines.push(`**New releases observed:** ${result.unseen.map((value) => `\`${value}\``).join(', ')}`);
   if (result.suite) {
     lines.push('', '## Suite', '', `Passed ${result.suite.passedCount}/${result.suite.total} scenarios.`);
@@ -95,6 +99,23 @@ async function writeWatchArtifacts(cwd: string, result: WatchResult): Promise<vo
   result.markdownArtifactPath = path.join(outputDir, `release-watch-${stamp}.md`);
   await writeFile(result.jsonArtifactPath, `${JSON.stringify(result, null, 2)}\n`, 'utf8');
   await writeFile(result.markdownArtifactPath, formatWatchMarkdown(result), 'utf8');
+}
+
+/** Infrastructure failures cannot be called model regressions or mark a release good. */
+export function classifyWatchedSuite(suite: Pick<SuiteRunResult, 'passed' | 'infrastructureFailedCount' | 'total' | 'passedCount'>): 'compatible' | 'regression' | 'infrastructure-error' {
+  if (suite.infrastructureFailedCount > 0 || suite.total < 1) return 'infrastructure-error';
+  if (suite.passed && suite.passedCount === suite.total) return 'compatible';
+  return 'regression';
+}
+
+export function versionsRequiringWatch(
+  published: string[], lastObserved: string, pendingVersion?: string,
+): string[] {
+  const unseen = published.filter(version => compareExactVersions(version, lastObserved) > 0);
+  if (pendingVersion && published.includes(pendingVersion) && !unseen.includes(pendingVersion)) {
+    unseen.push(pendingVersion);
+  }
+  return unseen.sort(compareExactVersions);
 }
 
 export async function watchClaudeCodeReleases(options: WatchOptions): Promise<WatchResult> {
@@ -125,7 +146,7 @@ export async function watchClaudeCodeReleases(options: WatchOptions): Promise<Wa
     }
   }
 
-  const unseen = published.filter((version) => compareExactVersions(version, state!.lastObserved) > 0);
+  const unseen = versionsRequiringWatch(published, state.lastObserved, state.pendingVersion);
   const base: WatchResult = {
     schemaVersion: 1,
     status: unseen.length ? 'new-release' : 'no-change',
@@ -145,18 +166,35 @@ export async function watchClaudeCodeReleases(options: WatchOptions): Promise<Wa
 
   const candidate = unseen[unseen.length - 1];
   options.onStatus?.(`Testing new Claude Code release ${candidate}...`);
-  const installed = await installClaudeVersion(candidate, { platform: options.platform, onStatus: options.onStatus });
-  const suite = await runSuite(options.suitePath, {
-    cwd,
-    tag: options.tag,
-    shard: options.shard,
-    concurrency: options.concurrency,
-    executableOverride: installed.executablePath,
-    artifactLabel: `watch-${candidate}`,
-  });
+  let suite: SuiteRunResult;
+  try {
+    const installed = await installClaudeVersion(candidate, { platform: options.platform, onStatus: options.onStatus });
+    suite = await runSuite(options.suitePath, {
+      cwd,
+      tag: options.tag,
+      shard: options.shard,
+      concurrency: options.concurrency,
+      executableOverride: installed.executablePath,
+      artifactLabel: `watch-${candidate}`,
+    });
+  } catch (error) {
+    base.status = 'infrastructure-error';
+    base.infrastructureError = error instanceof Error ? error.message : String(error);
+    // Deliberately keep existing state intact. No completed test means no progress.
+    if (options.writeArtifacts !== false) await writeWatchArtifacts(cwd, base);
+    return base;
+  }
   base.suite = suite;
+  const outcome = classifyWatchedSuite(suite);
+  if (outcome === 'infrastructure-error') {
+    base.status = 'infrastructure-error';
+    base.infrastructureError = `${suite.infrastructureFailedCount} scenario(s) failed due to infrastructure`;
+    // Retain prior state so the same candidate can be retried.
+    if (options.writeArtifacts !== false) await writeWatchArtifacts(cwd, base);
+    return base;
+  }
 
-  if (suite.passed) {
+  if (outcome === 'compatible') {
     base.status = 'compatible';
     await saveState(statePath, {
       version: 1,
@@ -187,6 +225,7 @@ export async function watchClaudeCodeReleases(options: WatchOptions): Promise<Wa
       lastKnownGood: state.lastKnownGood,
       updatedAt: createdAt,
       lastResult: 'regression',
+      pendingVersion: candidate,
     });
   }
 
