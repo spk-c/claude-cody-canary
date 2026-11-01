@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible Claude Code Canary bug
+title: "[bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove all credentials, personal data and local paths from reports.
+        Report security vulnerabilities privately as explained in SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: Canary version or commit
+      placeholder: "2.1.0 / commit SHA"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Windows or Ubuntu, Node version, Claude Code version
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Minimal scenario and reproduction commands
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include only redacted evidence.
+    validations:
+      required: true

@@ -5,11 +5,11 @@ Thanks for helping make Claude Code regressions reproducible. By participating i
 ## Development
 
 ```bash
-git clone https://github.com/SLP-DEV1/claude-code-canary.git
+git clone https://github.com/spk-c/claude-cody-canary.git
 cd claude-code-canary
-npm install
-npm test
-npm run build
+npm ci
+npm run check
+npm run check:dist
 ```
 
 Node.js 20+ is required.
