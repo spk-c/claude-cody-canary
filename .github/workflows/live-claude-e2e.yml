@@ -13,29 +13,49 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: claude-canary-live-e2e
+  cancel-in-progress: false
+
 jobs:
   live:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
     steps:
+      - name: Refuse execution on non-default branch
+        shell: bash
+        env:
+          REQUEST_REF: ${{ github.ref }}
+        run: |
+          if [ "$REQUEST_REF" != "refs/heads/main" ]; then
+            echo "::error::Run authenticated E2E only from the protected/default main branch."
+            exit 1
+          fi
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Require explicit provider credentials
-        shell: bash
+      - name: Install dependencies, build and validate safety tests
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::error::ANTHROPIC_API_KEY repository secret is required for authenticated E2E."
-            exit 1
-          fi
-      - name: Install dependencies and build
-        run: npm ci --ignore-scripts --no-audit --no-fund && npm run build
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build
+          npm run test:live-safety
       - name: Install actual Claude Code CLI
         run: npm install --global @anthropic-ai/claude-code
       - name: Confirm Claude Code version
         run: claude --version
-      - name: Execute real provider and plugin smoke checks in disposable Git worktrees
-        run: node scripts/live-e2e.mjs ${{ inputs.suite }}
+      - name: Execute model-backed E2E in an isolated fixture
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CANARY_E2E_KEEP: '0'
+          REQUESTED_SUITE: ${{ inputs.suite }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::error::ANTHROPIC_API_KEY GitHub Actions secret is required; no live model call was made."
+            exit 1
+          fi
+          node scripts/live-e2e.mjs "$REQUESTED_SUITE"

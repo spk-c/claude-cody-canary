@@ -28,3 +28,21 @@ untrusted branches. The workflow installs the official Claude Code CLI and
 runs the original `scripts/live-e2e.mjs` against disposable fixtures.
 Tests requiring a provider cannot be claimed as executed if credentials
 have not been supplied.
+
+## Authenticated-run safety
+
+The manual workflow rejects non-`main` refs before checkout, installs the
+trusted default branch and passes `ANTHROPIC_API_KEY` only to the final
+model-backed step. The `core` suite is the default; `full` runs additional
+model-backed scenarios and can cost substantially more. Store the key as a
+repository environment secret with deployment protection rules if possible.
+Never dispatch model-backed runs on unreviewed code. The original
+`bypassPermissions` setting was replaced with `acceptEdits` for the live fixture,
+which is also subject to a per-scenario `max_budget_usd` limit.
+
+If `CLAUDE_CANARY_E2E_DIR` is supplied, its `fixture` child is deleted only
+when it bears Canary's own exact ownership marker and has no symlinked
+path components. Unmarked directories are intentionally retained.
+
+The live model run is still not claimed successful until its authenticated
+workflow is explicitly launched and finishes successfully.

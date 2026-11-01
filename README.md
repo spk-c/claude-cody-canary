@@ -34,7 +34,10 @@ The manual [Live Claude Code E2E workflow](.github/workflows/live-claude-e2e.yml
 installs the actual Claude Code CLI and exercises a disposable Git scenario via
 `scripts/live-e2e.mjs`. It requires the `ANTHROPIC_API_KEY` GitHub Actions
 repository secret, and intentionally does not run on pull requests.
-Without that credential, **a real provider-backed test is not verified**.
+Without that credential, **a real provider-backed test is not verified**. The workflow
+accepts manual runs only from `main` and exposes the API key solely to the
+model-backed E2E step. The disposable fixture refuses to delete unowned folders,
+rejects symlinks and limits per-scenario model spending.
 
 The default CI independently tests real MCP stdio transport without paid APIs.
 
