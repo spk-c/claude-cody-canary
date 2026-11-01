@@ -60,11 +60,3 @@ jobs:
             exit 1
           fi
           node scripts/live-e2e.mjs "$REQUESTED_SUITE"
-      - name: Upload sanitized E2E result artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: live-claude-e2e-results
-          path: .canary/results/
-          if-no-files-found: ignore
-          retention-days: 7
