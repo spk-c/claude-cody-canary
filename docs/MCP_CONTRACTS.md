@@ -73,8 +73,24 @@ protocol version, empty client capabilities and Canary client identity on
 Legacy servers remain supported through their previous handshake.
 This opt-in does not auto-downgrade or mask infrastructure faults.
 This inspector is intentionally read-only; interactive MRTR
-`input_required` results fail closed. Streamable HTTP transport support and
-subscriptions/listen are still separate roadmap work.
+`input_required` results fail closed. An explicit 2026-era **Streamable HTTP** read-only inspector is also available:
+
+```yaml
+server:
+  transport: streamable-http
+  protocol_version: 2026-07-28
+  url: https://trusted.example.com/mcp
+  timeout_seconds: 15
+```
+
+It sends `MCP-Protocol-Version` and `Mcp-Method` headers with the same
+required per-request `_meta`. Redirects, URL credentials, HTTP on
+non-loopback interfaces and non-JSON (SSE) responses are rejected.
+The client never forwards local API keys, cookies or authorization headers.
+Local `http://127.0.0.1` is permitted for test fixtures.
+Only use endpoints from explicitly trusted sources; untrusted contract
+files can cause network requests. Session-based 2025 HTTP compatibility,
+SSE subscriptions and interactive MRTR remain separate roadmap work.
 
 ## Snapshot a known-good server
 
