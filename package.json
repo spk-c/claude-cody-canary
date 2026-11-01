@@ -1,7 +1,7 @@
 {
   "name": "claude-code-canary",
   "version": "2.1.0",
-  "description": "Prebuilt Claude Code Canary regression and compatibility CLI (JavaScript distribution)",
+  "description": "Source-buildable Claude Code Canary fork with security regression coverage",
   "author": "SLP-DEV1",
   "type": "module",
   "main": "./dist/api.js",
@@ -22,9 +22,15 @@
     "LICENSE"
   ],
   "scripts": {
-    "lint": "node scripts/check-dist.mjs",
-    "test": "node --test",
-    "check": "npm run lint && npm test"
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "check": "npm run version:check && npm run lint && npm test && npm run build && npm run test:security && npm run test:smoke && npm run docs:check",
+    "build": "tsc -p tsconfig.json",
+    "test:security": "node --test tests/security-regressions.test.mjs",
+    "test:smoke": "node --test tests/integration-smoke.test.mjs",
+    "docs:check": "node scripts/check-doc-links.mjs",
+    "version:check": "node scripts/check-version-sync.mjs",
+    "live:e2e": "node scripts/live-e2e.mjs core"
   },
   "keywords": [
     "claude-code",
@@ -64,5 +70,12 @@
     "yaml": "2.9.1",
     "zod": "4.6.7"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@openpgp/web-stream-tools": "0.3.1",
+    "@types/node": "24.19.1",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
 }

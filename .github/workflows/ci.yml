@@ -23,7 +23,14 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - name: Reproducible dependency installation
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Capture lockfile after restoring development dependencies
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        shell: bash
+        run: |
+          echo CANARY_LOCK_BEGIN
+          cat package-lock.json
+          echo CANARY_LOCK_END
       - name: Audit production dependencies
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
         run: npm audit --omit=dev --audit-level=high
