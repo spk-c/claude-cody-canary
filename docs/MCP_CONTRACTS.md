@@ -52,7 +52,29 @@ expect:
 
 `server.cwd` is resolved relative to the contract file. Environment values are passed to the server process but are never written into the Canary snapshot or report.
 
-Only the standard `stdio` transport is accepted in v1 of the contract format. The client uses newline-delimited JSON-RPC and performs the MCP lifecycle handshake before enumeration.
+Only the standard `stdio` transport is accepted in v1 of the contract format.
+The default `protocol_version: 2025-11-25` preserves the legacy
+`initialize` / `notifications/initialized` handshake.
+
+For a **2026-07-28 stateless stdio server**, explicitly set:
+
+```yaml
+server:
+  transport: stdio
+  protocol_version: 2026-07-28
+  command: node
+  args: [./mock-modern.mjs]
+```
+
+This runs `server/discover` instead of `initialize`, validates
+`supportedVersions` and sends required per-request `_meta` fields with
+protocol version, empty client capabilities and Canary client identity on
+**every** list request. Results must be `resultType: complete`.
+Legacy servers remain supported through their previous handshake.
+This opt-in does not auto-downgrade or mask infrastructure faults.
+This inspector is intentionally read-only; interactive MRTR
+`input_required` results fail closed. Streamable HTTP transport support and
+subscriptions/listen are still separate roadmap work.
 
 ## Snapshot a known-good server
 
