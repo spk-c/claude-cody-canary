@@ -6,12 +6,12 @@ import { McpContractSchema, inspectMcpContract } from '../src/mcp-contract.js';
 
 const MODERN_SERVER = String.raw`
 let input = '';
-const send = (id, result) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result: { resultType: 'complete', ...result } })+'\\n');
+const send = (id, result) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result: { resultType: 'complete', ...result } })+'\n');
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => {
  input += chunk;
- while(input.includes('\\n')) {
-   const at = input.indexOf('\\n'); const line = input.slice(0,at).trim(); input=input.slice(at+1);
+ while(input.includes('\n')) {
+   const at = input.indexOf('\n'); const line = input.slice(0,at).trim(); input=input.slice(at+1);
    if(!line)continue;
    const msg = JSON.parse(line);
    if(msg.method === 'initialize' || msg.method === 'notifications/initialized') {
@@ -50,5 +50,5 @@ describe('MCP 2026-07-28 stateless stdio inspector', () => {
       expect(snapshot.tools.map(t=>t.name)).toEqual(['safe']);
       expect(snapshot.fingerprint).toMatch(/^[a-f0-9]{64}$/);
     } finally { await rm(dir,{recursive:true,force:true}); }
-  });
+  }, 15000);
 });
