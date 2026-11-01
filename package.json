@@ -77,9 +77,9 @@
   "private": true,
   "devDependencies": {
     "@openpgp/web-stream-tools": "0.3.1",
-    "@types/node": "24.19.1",
+    "@types/node": "26.6.6",
     "tsx": "4.23.15",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vitest": "5.0.5"
   }
 }
