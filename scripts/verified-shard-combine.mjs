@@ -56,6 +56,7 @@ export function combineVerifiedShards(shards) {
   let universe;
   let nonShardSkips;
   const selected = new Set();
+  const inventories = [];
 
   for (const part of shards) {
     requireRecord(part, 'Shard');
@@ -73,6 +74,8 @@ export function combineVerifiedShards(shards) {
     seenShards.add(index);
     const selectedPaths = requirePaths(part.scenarios, 'scenarios');
     const skippedPaths = requirePaths(part.skipped, 'skipped');
+    const skipByPath = new Map(part.skipped.map(entry => [entry.path, entry.reason]));
+    inventories.push({ selectedPaths, skipByPath });
     for (const p of selectedPaths) {
       if (selected.has(p) || skippedPaths.has(p)) throw new Error(`Duplicate or conflicting scenario: ${p}`);
       selected.add(p);
@@ -106,13 +109,11 @@ export function combineVerifiedShards(shards) {
   }
   for (const path of universe) {
     let owners = 0;
-    for (const part of shards) {
-      const scenario = part.scenarios.some(s=>s.path===path);
-      const skip = part.skipped.find(s=>s.path===path);
-      if (scenario) owners++;
+    for (const { selectedPaths, skipByPath } of inventories) {
+      if (selectedPaths.has(path)) owners++;
       else if (globallySkipped.has(path)) {
-        if (!skip || skip.reason !== globallySkipped.get(path).reason) throw new Error(`Filtered scenario disagrees: ${path}`);
-      } else if (!skip || skip.reason !== 'shard') throw new Error(`Missing shard/skip coverage for ${path}`);
+        if (skipByPath.get(path) !== globallySkipped.get(path).reason) throw new Error(`Filtered scenario disagrees: ${path}`);
+      } else if (skipByPath.get(path) !== 'shard') throw new Error(`Missing shard/skip coverage for ${path}`);
     }
     if (globallySkipped.has(path) ? owners!==0 : owners!==1) throw new Error(`Scenario ownership invalid: ${path}`);
   }
@@ -136,7 +137,7 @@ async function readBounded(file) {
   return JSON.parse(await readFile(file,'utf8'));
 }
 export async function runVerifiedShardCli(args) {
-  if(args[0] !== '--output' || !args[1] || args.length < 5 ||
+  if(args[0] !== '--output' || !args[1] || args.length < 4 ||
       args.slice(2).some(x=>x.startsWith('--'))) {
     throw new Error('Usage: verified-shard-combine --output merged.json shard-1.json shard-2.json [...]');
   }
