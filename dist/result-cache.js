@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { findExecutable } from './doctor.js';
 import { getRepoRoot, resolveCommit } from './git.js';
@@ -23,6 +24,27 @@ function canonical(value) {
 function sha256Json(value) {
     return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 }
+// Fingerprint local and global Claude settings which may change independently
+// of the Git commit. Never put configuration contents or secret env values in
+// cache metadata: only a SHA-256 digest leaves this function.
+async function runtimeConfigFingerprint(repoRoot) {
+    const files = [
+        'CLAUDE.md', 'CLAUDE.local.md', '.mcp.json',
+        '.claude/settings.json', '.claude/settings.local.json', '.claude/CLAUDE.md',
+    ].map((file) => path.join(repoRoot, file));
+    files.push(path.join(homedir(), '.claude.json'), path.join(homedir(), '.claude', 'settings.json'));
+    const digest = createHash('sha256');
+    for (const file of files.sort()) {
+        digest.update(file);
+        try { digest.update(await sha256File(file)); }
+        catch (error) { if (error?.code === 'ENOENT') digest.update('<missing>'); else throw error; }
+    }
+    const env = Object.entries(process.env)
+        .filter(([key]) => /^(ANTHROPIC_|CLAUDE_|MCP_|OPENAI_|AWS_|GOOGLE_|VERTEX_)/.test(key))
+        .sort(([a], [b]) => a.localeCompare(b));
+    for (const [key, value] of env) digest.update(JSON.stringify([key, value]));
+    return digest.digest('hex');
+}
 export async function buildResultCacheIdentity(options) {
     const cwd = path.resolve(options.cwd);
     const repoRoot = await getRepoRoot(cwd);
@@ -32,7 +54,8 @@ export async function buildResultCacheIdentity(options) {
         throw new Error(`Result reuse requires a resolvable executable so it can be fingerprinted: ${options.executable}`);
     const nodeMajor = process.versions.node.split('.')[0];
     return {
-        schemaVersion: 1,
+        schemaVersion: 2,
+        runtimeConfigHash: await runtimeConfigFingerprint(repoRoot),
         scenarioHash: createHash('sha256').update(options.scenarioSource).digest('hex'),
         gitCommit,
         executableSha256: await sha256File(executable),
@@ -67,7 +90,7 @@ export async function readCachedRun(cacheRoot, identity) {
     catch {
         return undefined;
     }
-    if (envelope.schemaVersion !== 1 || envelope.key !== key)
+    if (envelope.schemaVersion !== 2 || envelope.key !== key)
         return undefined;
     if (sha256Json(envelope.identity) !== sha256Json(identity))
         return undefined;
@@ -80,7 +103,7 @@ export async function writeCachedRun(cacheRoot, identity, result) {
     await mkdir(cacheRoot, { recursive: true });
     const file = cacheFile(cacheRoot, key);
     const temporary = `${file}.tmp-${process.pid}-${Date.now()}`;
-    const envelope = { schemaVersion: 1, key, identity, createdAt: new Date().toISOString(), result: { ...result, artifactPath: undefined } };
+    const envelope = { schemaVersion: 2, key, identity, createdAt: new Date().toISOString(), result: { ...result, artifactPath: undefined } };
     await writeFile(temporary, `${JSON.stringify(envelope, null, 2)}\n`, 'utf8');
     await rename(temporary, file);
     return file;
@@ -105,7 +128,8 @@ export async function runScenarioWithCache(scenario, scenarioPath, options = {})
     if (cached)
         return { result: cached, cacheHit: true, cacheKey: key };
     const result = await runScenario(scenario, options);
-    await writeCachedRun(cacheRoot, identity, result);
+    // Failures may be transient and must be rerun instead of reused as truth.
+    if (result.passed) await writeCachedRun(cacheRoot, identity, result);
     return { result, cacheHit: false, cacheKey: key };
 }
 //# sourceMappingURL=result-cache.js.map

@@ -20,10 +20,27 @@ export const ScenarioPackSchema = z.object({
 }).strict();
 function safeRelative(value) {
     const normalized = value.replace(/\\/g, '/');
-    if (path.posix.isAbsolute(normalized) || normalized === '..' || normalized.startsWith('../') || normalized.includes('/../')) {
+    if (!normalized || normalized.includes('\0') || /^[A-Za-z]:\//.test(normalized) ||
+        normalized.split('/').some((segment) => !segment || segment === '.' || segment === '..')) {
         throw new Error(`Unsafe scenario pack path: ${JSON.stringify(value)}`);
     }
     return normalized;
+}
+async function assertNoSymlinkComponents(absolute) {
+    const resolved = path.resolve(absolute);
+    let current = path.parse(resolved).root;
+    for (const part of resolved.slice(current.length).split(path.sep).filter(Boolean)) {
+        current = path.join(current, part);
+        try {
+            const stat = await lstat(current);
+            if (stat.isSymbolicLink()) {
+                throw new Error(`Refusing scenario pack path containing a symlink: ${current}`);
+            }
+        }
+        catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+        }
+    }
 }
 async function fileSha256(file) {
     const stats = await lstat(file);
@@ -33,6 +50,8 @@ async function fileSha256(file) {
 }
 export async function inspectScenarioPack(root, options = {}) {
     const resolvedRoot = path.resolve(root);
+    await assertNoSymlinkComponents(resolvedRoot);
+    await assertNoSymlinkComponents(path.join(resolvedRoot, 'canary-pack.yml'));
     const raw = await readFile(path.join(resolvedRoot, 'canary-pack.yml'), 'utf8');
     const manifest = ScenarioPackSchema.parse(YAML.parse(raw));
     if (!options.allowUnsafe && (manifest.capabilities.network || manifest.capabilities.mutating)) {
@@ -42,6 +61,7 @@ export async function inspectScenarioPack(root, options = {}) {
     for (const entry of manifest.files) {
         const relative = safeRelative(entry.path);
         const absolute = path.resolve(resolvedRoot, relative);
+        await assertNoSymlinkComponents(absolute);
         if (!absolute.startsWith(`${resolvedRoot}${path.sep}`))
             throw new Error(`Scenario pack path escapes root: ${relative}`);
         const actual = await fileSha256(absolute);
@@ -54,12 +74,27 @@ export async function inspectScenarioPack(root, options = {}) {
 export async function installScenarioPack(sourceRoot, targetRoot, options = {}) {
     const inspected = await inspectScenarioPack(sourceRoot, options);
     const target = path.resolve(targetRoot);
+    await assertNoSymlinkComponents(target);
     await mkdir(target, { recursive: true });
+    await assertNoSymlinkComponents(target);
     for (const relative of inspected.verifiedFiles) {
         const destination = path.resolve(target, relative);
         if (!destination.startsWith(`${target}${path.sep}`))
             throw new Error(`Scenario pack destination escapes target root: ${relative}`);
+        await assertNoSymlinkComponents(destination);
         await mkdir(path.dirname(destination), { recursive: true });
+        await assertNoSymlinkComponents(destination);
+        // Even --force may overwrite only existing regular files, never links.
+        if (options.force) {
+            try {
+                const info = await lstat(destination);
+                if (!info.isFile() || info.isSymbolicLink())
+                    throw new Error(`Refusing non-regular scenario pack destination: ${relative}`);
+            }
+            catch (error) {
+                if (error?.code !== 'ENOENT') throw error;
+            }
+        }
         if (!options.force) {
             try {
                 await lstat(destination);

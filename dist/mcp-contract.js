@@ -165,6 +165,14 @@ class StdioMcpClient {
     }
     consume(chunk) {
         this.buffer += chunk;
+        // A malicious or broken stdio server can emit an unterminated JSON line.
+        // Bound the frame before parsing to prevent unbounded memory growth.
+        if (Buffer.byteLength(this.buffer, 'utf8') > 8 * 1024 * 1024) {
+            this.failAll(new Error('MCP server stdout frame exceeded 8 MiB limit.'));
+            this.child.kill('SIGKILL');
+            this.buffer = '';
+            return;
+        }
         for (;;) {
             const newline = this.buffer.indexOf('\n');
             if (newline < 0)

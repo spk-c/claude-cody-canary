@@ -342,7 +342,7 @@ async function attestCommand() {
         const file = required(valueAfter('--attestation'), '--attestation');
         const attestation = await readJson(file);
         const key = valueAfter('--public-key');
-        const result = await verifyBundleAttestation(root, attestation, { publicKeyPem: key ? await readFile(key, 'utf8') : undefined });
+        const result = await verifyBundleAttestation(root, attestation, { publicKeyPem: key ? await readFile(key, 'utf8') : undefined, attestationPath: file, exclude: commaList(valueAfter('--exclude')) });
         console.log(JSON.stringify(result, null, 2));
         if (!result.passed)
             process.exitCode = CanaryExitCode.regression;

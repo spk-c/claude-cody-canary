@@ -6,6 +6,8 @@ import { loadScenario } from './config.js';
 import { createDetachedWorktree, getRepoRoot, resolveCommit } from './git.js';
 import { redactSensitiveText } from './record.js';
 import { CANARY_VERSION } from './version.js';
+const REPRO_MARKER = '.claude-canary-repro';
+const REPRO_MARKER_CONTENT = 'claude-canary reproduction bundle v1\n';
 const MAX_FILES = 500;
 const MAX_FILE_BYTES = 2 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 12 * 1024 * 1024;
@@ -378,6 +380,25 @@ function buildReadme(scenario, baseCommit, state) {
 }
 const SH_LAUNCHER = `#!/usr/bin/env sh\nset -eu\nSCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\ncd "$SCRIPT_DIR/fixture"\nif [ ! -d .git ]; then\n  git init -q\n  git add -A\n  git -c user.name='Claude Canary Repro' -c user.email='repro@example.invalid' commit -qm 'fixture baseline' --allow-empty\nfi\nclaude-canary run ../scenario.canary.yml\n`;
 const PS_LAUNCHER = `$ErrorActionPreference = 'Stop'\n$Root = Split-Path -Parent $MyInvocation.MyCommand.Path\nSet-Location (Join-Path $Root 'fixture')\nif (-not (Test-Path '.git')) {\n  git init -q\n  git add -A\n  git -c user.name='Claude Canary Repro' -c user.email='repro@example.invalid' commit -qm 'fixture baseline' --allow-empty\n}\nclaude-canary run ../scenario.canary.yml\n`;
+async function ensureSafeReproDestination(repoRoot, output) {
+    const relative = path.relative(repoRoot, output);
+    if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(relative) || relative.split(path.sep).includes('.git')) {
+        throw new Error('Repro destination must be a subdirectory inside the repository, excluding .git.');
+    }
+    let current = path.parse(output).root;
+    for (const component of output.slice(current.length).split(path.sep).filter(Boolean)) {
+        current = path.join(current, component);
+        try {
+            if ((await lstat(current)).isSymbolicLink()) {
+                throw new Error(`Refusing repro output path containing symlink: ${current}`);
+            }
+        }
+        catch (error) {
+            if (error?.code !== 'ENOENT') throw error;
+        }
+    }
+}
 export async function createReproBundle(resultPath, options = {}) {
     const repoRoot = await getRepoRoot(options.cwd ?? process.cwd());
     const result = await loadResultArtifact(path.resolve(repoRoot, resultPath));
@@ -389,12 +410,19 @@ export async function createReproBundle(resultPath, options = {}) {
     const baseCommit = await resolveCommit(repoRoot, baseCommitInput);
     const defaultOutput = path.join(repoRoot, '.canary', 'repro', `${slug(scenario.name)}-${baseCommit.slice(0, 8)}`);
     const output = path.resolve(repoRoot, options.output ?? defaultOutput);
+    await ensureSafeReproDestination(repoRoot, output);
     if (await exists(output)) {
         if (!options.force)
             throw new Error(`Repro output already exists: ${output}. Use --force to replace it.`);
+        let marker;
+        try { marker = await readFile(path.join(output, REPRO_MARKER), 'utf8'); }
+        catch { /* Unowned directory: leave it untouched. */ }
+        if (marker !== REPRO_MARKER_CONTENT)
+            throw new Error(`Refusing to remove directory without Canary repro ownership marker: ${output}`);
         await rm(output, { recursive: true, force: true });
     }
     await mkdir(path.join(output, 'fixture'), { recursive: true });
+    await writeFile(path.join(output, REPRO_MARKER), REPRO_MARKER_CONTENT, 'utf8');
     const worktree = await createDetachedWorktree(repoRoot, baseCommit);
     const state = { exported: [], skipped: [], redacted: [], bytes: 0 };
     try {

@@ -62,14 +62,25 @@ export async function verifyBundleAttestation(root, attestation, options = {}) {
     const resolved = path.resolve(root);
     const failures = [];
     const actual = [];
+    const seen = new Set();
     for (const expected of attestation.files) {
         const normalized = expected.path.replace(/\\/g, '/');
-        if (path.posix.isAbsolute(normalized) || normalized.startsWith('../') || normalized.includes('/../')) {
-            failures.push(`Unsafe attested path: ${expected.path}`);
+        if (!normalized || normalized.includes('\0') || /^[A-Za-z]:\//.test(normalized) ||
+            normalized.split('/').some((segment) => !segment || segment === '.' || segment === '..') ||
+            seen.has(normalized)) {
+            failures.push(`Unsafe or duplicate attested path: ${expected.path}`);
             continue;
         }
+        seen.add(normalized);
         try {
-            actual.push(await describeFile(resolved, path.join(resolved, normalized)));
+            const absolute = path.join(resolved, normalized);
+            let parent = path.dirname(absolute);
+            while (parent !== resolved && parent.startsWith(`${resolved}${path.sep}`)) {
+                if ((await lstat(parent)).isSymbolicLink())
+                    throw new Error(`Symlinked ancestor: ${parent}`);
+                parent = path.dirname(parent);
+            }
+            actual.push(await describeFile(resolved, absolute));
         }
         catch (error) {
             failures.push(`Missing/unreadable ${normalized}: ${error instanceof Error ? error.message : String(error)}`);
@@ -81,6 +92,26 @@ export async function verifyBundleAttestation(root, attestation, options = {}) {
         if (!expected || expected.sha256 !== file.sha256 || expected.bytes !== file.bytes)
             failures.push(`Integrity mismatch: ${file.path}`);
     }
+    // A valid attestation covers the entire bundle, not merely listed files.
+    const ignored = new Set((options.exclude ?? []).map((name) => name.replace(/\\/g, '/')));
+    if (options.attestationPath) {
+        const relative = path.relative(resolved, path.resolve(options.attestationPath)).replace(/\\/g, '/');
+        if (relative && !relative.startsWith('../') && !path.isAbsolute(relative))
+            ignored.add(relative);
+    }
+    const listed = new Set(attestation.files.map((file) => file.path.replace(/\\/g, '/')));
+    const visit = async (directory) => {
+        for (const entry of await readdir(directory, { withFileTypes: true })) {
+            const absolute = path.join(directory, entry.name);
+            const relative = path.relative(resolved, absolute).replace(/\\/g, '/');
+            if (ignored.has(relative)) continue;
+            if (entry.isSymbolicLink()) failures.push(`Unexpected symlink in attested bundle: ${relative}`);
+            else if (entry.isDirectory()) await visit(absolute);
+            else if (entry.isFile() && !listed.has(relative)) failures.push(`Unattested bundle file: ${relative}`);
+            else if (!entry.isFile() && !entry.isDirectory()) failures.push(`Unexpected bundle entry: ${relative}`);
+        }
+    };
+    await visit(resolved);
     const payload = manifestBytes(attestation.files);
     const hash = createHash('sha256').update(payload).digest('hex');
     if (hash !== attestation.manifestHash)
