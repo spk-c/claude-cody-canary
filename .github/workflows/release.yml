@@ -1,0 +1,89 @@
+name: Publish verified GitHub Release
+run-name: Release ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        description: Exact version including v prefix (e.g. v2.1.0)
+        type: string
+      confirmation:
+        required: true
+        description: Type PUBLISH to confirm the immutable release
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: claude-canary-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate manual release request before accessing credentials
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          test "$GITHUB_REF" = 'refs/heads/main' || { echo 'Only main can publish'; exit 1; }
+          test "$INPUT_CONFIRMATION" = PUBLISH || { echo 'Explicit PUBLISH confirmation required'; exit 1; }
+          [[ "$INPUT_VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Exact stable vX.Y.Z tag required'; exit 1; }
+          ACTUAL="v$(node -p "require('./package.json').version")"
+          test "$INPUT_VERSION" = "$ACTUAL" || { echo "Input tag and package version mismatch: $INPUT_VERSION vs $ACTUAL"; exit 1; }
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo 'Checkout does not match dispatched main commit'; exit 1; }
+      - name: Rebuild and verify source and npm packaging
+        run: |
+          npm ci --ignore-scripts --no-fund
+          npm run check
+          npm run check:dist
+          npm audit --audit-level=high
+          npm pack --dry-run --ignore-scripts
+      - name: Require successful full live E2E on this exact commit
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/live-claude-e2e.yml/runs?event=workflow_dispatch&status=success&per_page=100" > "$RUNNER_TEMP/canary-e2e-runs.json"
+          node scripts/check-release-evidence.mjs "$GITHUB_SHA" "$RUNNER_TEMP/canary-e2e-runs.json"
+      - name: Build release archive and checksums
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          npm pack --ignore-scripts --pack-destination release-assets
+          cd release-assets
+          sha256sum *.tgz > SHA256SUMS
+      - name: Create immutable release tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="$INPUT_VERSION"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" > "$RUNNER_TEMP/canary-tag.json" 2>/dev/null; then
+            OBJECT_SHA="$(node -p "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8')).object.sha" "$RUNNER_TEMP/canary-tag.json")"
+            test "$OBJECT_SHA" = "$GITHUB_SHA" || { echo 'Existing tag points to another SHA; refusing to overwrite.'; exit 1; }
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" \
+              -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA" > /dev/null
+          fi
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists; refusing to overwrite."
+          else
+            gh release create "$TAG" release-assets/* --verify-tag --target "$GITHUB_SHA" \
+              --title "Claude Code Canary $TAG" --generate-notes
+          fi

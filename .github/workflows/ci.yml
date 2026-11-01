@@ -1,4 +1,4 @@
-name: JavaScript distribution CI
+name: Source and security CI
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node: ['20', '22']
+        node: ['20', '22', '24']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -26,12 +26,17 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Audit production dependencies
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --audit-level=high
       - name: Install actual Claude Code CLI
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
         run: npm install --global @anthropic-ai/claude-code
       - name: Verify package and run regression tests
         run: npm run check
+      - name: Verify generated distribution is committed
+        run: npm run check:dist
+      - name: Inspect npm tarball
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        run: npm pack --dry-run --ignore-scripts
       - name: Run real Claude Code CLI to MCP stdio server smoke test
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
         run: node scripts/claude-mcp-smoke.mjs

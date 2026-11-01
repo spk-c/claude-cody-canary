@@ -123,7 +123,9 @@ async function findFailedArtifact() {
     const full = path.join(resultsDir, entry);
     try {
       const parsed = JSON.parse(await readFile(full, 'utf8'));
-      if (parsed && parsed.passed === false) return full;
+      if (parsed && parsed.passed === false &&
+          parsed.scenario === 'live-claude-e2e' &&
+          parsed.executable === process.execPath) return full;
     } catch {
       // Ignore non-result JSON artifacts.
     }
@@ -188,6 +190,9 @@ async function fullSuite() {
   ]);
   canary(['replay', '.canary/recorded.canary.yml', '--executable', claude]);
 
+  // Generate a deterministic failed Canary result without spending model tokens.
+  // Never rely on incidental failures from previous model-backed runs.
+  canary(['run', '.canary/live.canary.yml', '--executable', process.execPath], { expectFailure: true });
   const failedArtifact = await findFailedArtifact();
   canary(['repro', failedArtifact, '--scenario', '.canary/live.canary.yml', '--output', '.canary/repro-live']);
 

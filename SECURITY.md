@@ -6,11 +6,11 @@ Claude Code Canary launches Claude Code and user-configured setup/verification c
 
 | Version | Supported |
 | --- | --- |
-| latest `1.x` | ✅ |
-| older `1.x` | best-effort security fixes when practical |
+| latest `2.x` | ✅ |
+| older `2.x` | best-effort security fixes when practical |
 | pre-1.0 | ❌ |
 
-Security fixes may require upgrading to the latest compatible v1 release.
+Security fixes may require upgrading to the latest compatible v2 release. Version 2.1.0 is not yet backed by a published GitHub Release.
 
 ## Safe usage
 
