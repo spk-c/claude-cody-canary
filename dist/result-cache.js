@@ -94,7 +94,9 @@ export async function readCachedRun(cacheRoot, identity) {
         return undefined;
     if (sha256Json(envelope.identity) !== sha256Json(identity))
         return undefined;
-    if (!envelope.result || envelope.result.schemaVersion !== 1 || envelope.result.gitCommit !== identity.gitCommit)
+    if (!envelope.result || envelope.result.schemaVersion !== 1 ||
+        envelope.result.gitCommit !== identity.gitCommit || envelope.result.passed !== true ||
+        !Array.isArray(envelope.result.failures) || envelope.result.failures.length !== 0)
         return undefined;
     return { ...envelope.result, artifactPath: undefined };
 }

@@ -24,5 +24,13 @@ jobs:
           node-version: ${{ matrix.node }}
       - name: Install exact declared dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Produce npm lockfile (capture from canonical npm resolver)
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        shell: bash
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          echo CANARY_LOCK_BEGIN
+          cat package-lock.json
+          echo CANARY_LOCK_END
       - name: Verify package and run regression tests
         run: npm run check

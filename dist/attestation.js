@@ -61,6 +61,22 @@ export async function createBundleAttestation(root, options = {}) {
 export async function verifyBundleAttestation(root, attestation, options = {}) {
     const resolved = path.resolve(root);
     const failures = [];
+    if (!attestation || attestation.schemaVersion !== 1 || !Array.isArray(attestation.files) ||
+        !['sha256', 'ed25519-sha256-manifest'].includes(attestation.algorithm) ||
+        typeof attestation.manifestHash !== 'string' ||
+        !/^[0-9a-f]{64}$/.test(attestation.manifestHash)) {
+        return { passed: false, failures: ['Invalid attestation envelope.'] };
+    }
+    if ((attestation.algorithm === 'sha256' && attestation.signature !== undefined) ||
+        (attestation.algorithm === 'ed25519-sha256-manifest' &&
+            (typeof attestation.signature !== 'string' || !attestation.signature))) {
+        return { passed: false, failures: ['Attestation signing metadata does not match the declared algorithm.'] };
+    }
+    if (attestation.files.some((file) => !file || typeof file.path !== 'string' ||
+        typeof file.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(file.sha256) ||
+        !Number.isSafeInteger(file.bytes) || file.bytes < 0)) {
+        return { passed: false, failures: ['Invalid attested file metadata.'] };
+    }
     const actual = [];
     const seen = new Set();
     for (const expected of attestation.files) {

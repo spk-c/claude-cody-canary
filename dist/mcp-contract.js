@@ -151,7 +151,9 @@ class StdioMcpClient {
         this.child.on('close', (code, signal) => {
             this.closed = true;
             if (this.pending.size > 0) {
-                const detail = this.stderr.trim() ? ` stderr: ${this.stderr.trim()}` : '';
+                // MCP stderr may include credentials or private prompts. Never
+                // echo raw server stderr into result artifacts or CI logs.
+                const detail = this.stderr.trim() ? ' (server wrote stderr; contents suppressed)' : '';
                 this.failAll(new Error(`MCP server exited before replying (code=${String(code)}, signal=${String(signal)}).${detail}`));
             }
         });
@@ -220,8 +222,8 @@ class StdioMcpClient {
         clearTimeout(pending.timer);
         if (isRecord(message.error)) {
             const code = typeof message.error.code === 'number' ? message.error.code : 'unknown';
-            const text = typeof message.error.message === 'string' ? message.error.message : 'MCP request failed';
-            pending.reject(new Error(`MCP JSON-RPC error ${String(code)}: ${text}`));
+            // Remote MCP errors may contain confidential server data.
+            pending.reject(new Error(`MCP JSON-RPC request failed (code ${String(code)}).`));
         }
         else {
             pending.resolve(message.result);
