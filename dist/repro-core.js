@@ -384,7 +384,7 @@ async function ensureSafeReproDestination(repoRoot, output) {
     const relative = path.relative(repoRoot, output);
     if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) ||
         path.isAbsolute(relative) || relative.split(path.sep).includes('.git')) {
-        throw new Error('Repro destination must be a subdirectory inside the repository, excluding .git.');
+        throw new Error('Repro destination must be a subdirectory inside the repository, excluding .git. (' + JSON.stringify({ repoRoot, output, relative }) + ')');
     }
     let current = path.parse(output).root;
     for (const component of output.slice(current.length).split(path.sep).filter(Boolean)) {
