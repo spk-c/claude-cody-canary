@@ -1,12 +1,15 @@
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { minimatch } from 'minimatch';
+import { minimatch, Minimatch } from 'minimatch';
 import YAML from 'yaml';
 import { z } from 'zod';
 import { loadScenario } from './config.js';
 import { clusterRunFailures, fingerprintRun } from './fingerprint.js';
 import { runScenarioWithCache } from './result-cache.js';
 import { runScenario } from './runner.js';
+import { getRepoRoot, resolveCommit } from './git.js';
+import { CANARY_VERSION } from './version.js';
 const SuiteEntrySchema = z.object({
     path: z.string().min(1),
     tags: z.array(z.string().min(1)).default([]),
@@ -39,11 +42,11 @@ async function collectFiles(root, current = root, output = []) {
             continue;
         const absolute = path.join(current, entry.name);
         if (entry.isDirectory()) {
-            if (output.length > 20_000)
-                throw new Error('Suite discovery exceeded 20,000 files; narrow the include patterns.');
             await collectFiles(root, absolute, output);
         }
         else if (entry.isFile()) {
+            if (output.length >= 20_000)
+                throw new Error('Suite discovery exceeded 20,000 files; narrow the include patterns.');
             output.push(normalizeRelative(path.relative(root, absolute)));
         }
     }
@@ -96,27 +99,33 @@ function mergeEntry(target, file, entry) {
 async function discoverSuiteCandidates(suite, cwd) {
     const files = await collectFiles(cwd);
     const selected = new Map();
-    const excluded = (file) => suite.exclude.some((pattern) => minimatch(file, pattern, { dot: true }));
-    for (const pattern of suite.include) {
-        for (const file of files) {
-            if (excluded(file) || !minimatch(file, pattern, { dot: true }))
-                continue;
+    // Parse each glob once and scan the file list a single time. Repeatedly
+    // compiling minimatch in a pattern x file nested loop is expensive for
+    // monorepos; exclusions and patterns remain dotfile-aware.
+    const excludes = suite.exclude.map(pattern => new Minimatch(pattern, { dot: true }));
+    const includes = suite.include.map(pattern => new Minimatch(pattern, { dot: true }));
+    const entries = suite.scenarios.map(entry => ({ entry, matcher: new Minimatch(entry.path, { dot: true }) }));
+    for (const file of files) {
+        if (excludes.some(pattern => pattern.match(file)))
+            continue;
+        if (includes.some(pattern => pattern.match(file))) {
             mergeEntry(selected, file, { tags: suite.tags, affects: [], always: false });
         }
-    }
-    for (const entry of suite.scenarios) {
-        for (const file of files) {
-            if (excluded(file) || !minimatch(file, entry.path, { dot: true }))
-                continue;
-            mergeEntry(selected, file, entry);
+        for (const { entry, matcher } of entries) {
+            if (matcher.match(file))
+                mergeEntry(selected, file, entry);
         }
     }
     const candidates = [...selected.values()].sort((a, b) => a.path.localeCompare(b.path));
-    for (const candidate of candidates) {
-        const scenario = await loadScenario(path.resolve(cwd, candidate.path));
-        candidate.tags = [...new Set([...candidate.tags, ...scenario.tags])].sort();
-        candidate.affects = [...new Set([...candidate.affects, ...scenario.affects])].sort();
-        candidate.always = candidate.always || scenario.always_run;
+    // Limit file parsing concurrency to avoid saturating the file descriptor
+    // budget, keeping result order and errors deterministic.
+    for (let start = 0; start < candidates.length; start += 16) {
+        await Promise.all(candidates.slice(start, start + 16).map(async (candidate) => {
+            const scenario = await loadScenario(path.resolve(cwd, candidate.path));
+            candidate.tags = [...new Set([...candidate.tags, ...scenario.tags])].sort();
+            candidate.affects = [...new Set([...candidate.affects, ...scenario.affects])].sort();
+            candidate.always = candidate.always || scenario.always_run;
+        }));
     }
     return candidates;
 }
@@ -202,12 +211,42 @@ function formatSuiteMarkdown(result) {
     }
     return `${lines.join('\n')}\n`;
 }
+/**
+ * Shared shard identity binds the exact repo commit, full discovered suite
+ * definition, selection filters, runtime and hashed provider environment.
+ * It excludes shard N/M by design, enabling valid distributed aggregation.
+ */
+export async function suiteExecutionIdentity(absoluteSuitePath, selection, options, cwd) {
+    const gitRoot = await getRepoRoot(cwd);
+    const gitCommit = await resolveCommit(gitRoot, options.gitRefOverride ?? 'HEAD');
+    const providerEnvironment = Object.fromEntries(Object.entries(process.env)
+        .filter(([key]) => /^(ANTHROPIC_|CLAUDE_|MCP_|OPENAI_|AWS_|GOOGLE_|VERTEX_)/.test(key))
+        .sort(([a], [b]) => a.localeCompare(b)));
+    const record = {
+        schemaVersion: 1,
+        gitCommit,
+        suiteSource: await readFile(absoluteSuitePath, 'utf8'),
+        discovered: selection.discovered,
+        tag: options.tag ?? null,
+        changedPaths: [...(options.changedPaths ?? [])].sort(),
+        executable: options.executableOverride ?? null,
+        platform: process.platform,
+        arch: process.arch,
+        nodeMajor: process.versions.node.split('.')[0],
+        canaryVersion: CANARY_VERSION,
+        providerEnvironment,
+    };
+    return createHash('sha256').update(JSON.stringify(record)).digest('hex');
+}
 export async function runSuite(suitePath, options = {}) {
     const cwd = path.resolve(options.cwd ?? process.cwd());
     const absoluteSuitePath = path.resolve(cwd, suitePath);
     const suite = await loadSuite(absoluteSuitePath);
     const selection = await explainSuiteSelection(suite, { cwd, tag: options.tag, changedPaths: options.changedPaths, shard: options.shard });
     const resolved = selection.selected;
+    const executionIdentity = options.shard
+        ? await suiteExecutionIdentity(absoluteSuitePath, selection, options, cwd)
+        : undefined;
     if (resolved.length === 0)
         throw new Error(`Suite ${suite.name} selected no scenarios.`);
     const maxRuns = options.maxRuns ?? suite.max_runs;
@@ -291,6 +330,7 @@ export async function runSuite(suitePath, options = {}) {
         failedCount,
         infrastructureFailedCount,
         cacheHitCount: completed.filter((item) => item.cacheHit).length,
+        executionIdentity,
         skippedBySelection: selection.skipped.length,
         skipped: selection.skipped,
         shard: options.shard,
@@ -327,6 +367,10 @@ export function combineSuiteResults(results) {
             scenariosByPath.set(scenario.path, scenario);
         }
     }
+    const identities = results.map(result => result.executionIdentity).filter(Boolean);
+    if (identities.length && (identities.length !== results.length || new Set(identities).size !== 1)) {
+        throw new Error('Cannot merge shards from different or missing execution identities.');
+    }
     const scenarios = [...scenariosByPath.values()].sort((a, b) => a.path.localeCompare(b.path));
     const runResults = scenarios.flatMap((item) => item.result ? [item.result] : []);
     const failedCount = scenarios.filter((item) => !item.passed).length;
@@ -343,6 +387,7 @@ export function combineSuiteResults(results) {
         failedCount,
         infrastructureFailedCount,
         cacheHitCount: scenarios.filter((item) => item.cacheHit).length,
+        executionIdentity: identities[0],
         skippedBySelection: 0,
         skipped: [],
         scenarios,
