@@ -25,16 +25,7 @@ jobs:
       - name: Use npm with fixed peer-dependency resolver
         run: npm install --global npm@11.19.1
       - name: Reproducible dependency installation
-        run: |
-          node -e "require('node:fs').unlinkSync('package-lock.json')"
-          npm install --ignore-scripts --no-audit --no-fund
-      - name: Capture regenerated development-dependency lockfile
-        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
-        shell: bash
-        run: |
-          echo CANARY_LOCK_BEGIN
-          cat package-lock.json
-          echo CANARY_LOCK_END
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Audit production dependencies
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
         run: npm audit --audit-level=high
@@ -43,6 +34,22 @@ jobs:
         run: npm install --global @anthropic-ai/claude-code
       - name: Verify package and run regression tests
         run: npm run check
+      - name: Export regenerated dist for source-drift repair (temporary)
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
+        shell: bash
+        run: |
+          node <<'CANARY_NODE'
+          const fs = require('node:fs');
+          const cp = require('node:child_process');
+          const items = cp.execFileSync('git', ['diff', '--name-only', '--', 'dist'], {encoding:'utf8'}).trim().split(/\r?\n/).filter(Boolean);
+          for (const file of items) {
+            const data = fs.readFileSync(file).toString('base64');
+            for (let index = 0; index < data.length; index += 2800) {
+              console.log('CANARY_DIST|' + file + '|' + index + '|' + data.slice(index, index + 2800));
+            }
+          }
+          console.log('CANARY_DIST_DONE|' + items.length);
+          CANARY_NODE
       - name: Verify generated distribution is committed
         run: npm run check:dist
       - name: Inspect npm tarball
