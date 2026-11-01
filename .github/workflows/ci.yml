@@ -22,6 +22,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+      - name: Use npm with fixed peer-dependency resolver
+        run: npm install --global npm@11.19.1
       - name: Reproducible dependency installation
         run: |
           node -e "require('node:fs').unlinkSync('package-lock.json')"
