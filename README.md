@@ -6,8 +6,9 @@ MCP servers, plugins, scenarios and CI.
 > **Repository status (November 2026):** This fork currently contains the
 > **precompiled JavaScript distribution** of Claude Code Canary v2.1.0 and its
 > JSON schemas, **not the original TypeScript source tree**. The original
-> `src/`, `tsconfig.json`, development tests, docs, lockfile and Marketplace
-> `action.yml` were not included in the imported snapshot. The checked-in
+> `src/`, `tsconfig.json`, development tests, docs and Marketplace
+> `action.yml` were not included in the imported snapshot. A new npm v3
+> lockfile now pins this distribution's dependency graph. The checked-in
 > JavaScript is the code maintained here until original sources are restored.
 > Do not assume this repository can rebuild the distribution from TypeScript,
 > or that it provides a GitHub Marketplace Action.
@@ -19,7 +20,7 @@ Requires Node.js 20+ and Git.
 ```bash
 git clone https://github.com/spk-c/claude-cody-canary.git
 cd claude-cody-canary
-npm install --ignore-scripts
+npm ci --ignore-scripts
 npm run check
 node dist/v2-cli.js --help
 ```
@@ -66,7 +67,7 @@ claude-canary plugin-suite --plugin ./my-plugin --last 10
 ## Development and CI
 
 `npm run check` validates JavaScript syntax and package entrypoints and runs
-Node's built-in regression tests. CI tests Node.js 20 and 22 on Windows and Linux.
+Node's built-in regression tests. CI tests Node.js 20 and 22 on Windows and Linux using `npm ci` and performs a production dependency vulnerability audit.
 There is currently **no TypeScript build step**; source maps point to original
 files that were not imported. The GitHub Action described by upstream documentation
 is not present in this mirror and is not advertised as available here.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, symlink, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -173,4 +173,19 @@ test('failed cached results are never loaded', async (t) => {
     schemaVersion:1, gitCommit:'abc', passed:false, failures:['transient']
   });
   assert.equal(await readCachedRun(dir, identity), undefined);
+});
+
+test('Ed25519 attestations verify with the correct key and reject tampering', async (t) => {
+  const dir = await temp(t);
+  await writeFile(path.join(dir,'payload.txt'), 'original payload');
+  const { privateKey, publicKey } = generateKeyPairSync('ed25519');
+  const privateKeyPem = privateKey.export({format:'pem',type:'pkcs8'});
+  const publicKeyPem = publicKey.export({format:'pem',type:'spki'});
+  const proof = await createBundleAttestation(dir, {privateKeyPem});
+  assert.equal(proof.algorithm, 'ed25519-sha256-manifest');
+  assert.equal((await verifyBundleAttestation(dir, proof, {publicKeyPem})).passed, true);
+  await writeFile(path.join(dir,'payload.txt'), 'tampered payload');
+  const check = await verifyBundleAttestation(dir, proof, {publicKeyPem});
+  assert.equal(check.passed, false);
+  assert.ok(check.failures.some((x) => /Integrity mismatch/.test(x)));
 });

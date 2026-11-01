@@ -22,15 +22,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: Install exact declared dependencies
-        run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Produce npm lockfile (capture from canonical npm resolver)
+      - name: Reproducible dependency installation
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Audit production dependencies
         if: matrix.os == 'ubuntu-latest' && matrix.node == '22'
-        shell: bash
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-          echo CANARY_LOCK_BEGIN
-          cat package-lock.json
-          echo CANARY_LOCK_END
+        run: npm audit --omit=dev --audit-level=high
       - name: Verify package and run regression tests
         run: npm run check
