@@ -109,9 +109,8 @@ function handle(message) {
 
     trace(toolName, toolUseId);
 
-    const decision = toolInput
-      ? { behavior: 'allow', updatedInput: toolInput }
-      : { behavior: 'deny', message: 'Claude Canary refused to alter a permission request whose original tool input was unavailable.' };
+    // Instrumentation is observational; never auto-authorize requested actions.
+    const decision = { behavior: 'deny', message: 'Claude Canary permission probe does not approve tools.' };
 
     send({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text: JSON.stringify(decision) }], isError: false } });
     return;

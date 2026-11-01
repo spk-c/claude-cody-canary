@@ -253,7 +253,7 @@ class StdioMcpClient {
     this.child.on('close', (code, signal) => {
       this.closed = true;
       if (this.pending.size > 0) {
-        const detail = this.stderr.trim() ? ` stderr: ${this.stderr.trim()}` : '';
+        const detail = this.stderr.trim() ? ' (server wrote stderr; contents suppressed)' : '';
         this.failAll(new Error(`MCP server exited before replying (code=${String(code)}, signal=${String(signal)}).${detail}`));
       }
     });
@@ -269,6 +269,12 @@ class StdioMcpClient {
 
   private consume(chunk: string): void {
     this.buffer += chunk;
+    if (Buffer.byteLength(this.buffer, 'utf8') > 8 * 1024 * 1024) {
+      this.failAll(new Error('MCP server stdout frame exceeded 8 MiB limit.'));
+      this.child.kill('SIGKILL');
+      this.buffer = '';
+      return;
+    }
     for (;;) {
       const newline = this.buffer.indexOf('\n');
       if (newline < 0) break;
@@ -306,8 +312,7 @@ class StdioMcpClient {
     clearTimeout(pending.timer);
     if (isRecord(message.error)) {
       const code = typeof message.error.code === 'number' ? message.error.code : 'unknown';
-      const text = typeof message.error.message === 'string' ? message.error.message : 'MCP request failed';
-      pending.reject(new Error(`MCP JSON-RPC error ${String(code)}: ${text}`));
+      pending.reject(new Error(`MCP JSON-RPC request failed (code ${String(code)}).`));
     } else {
       pending.resolve(message.result);
     }
