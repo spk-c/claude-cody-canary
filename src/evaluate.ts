@@ -1,4 +1,4 @@
-import { access, readFile } from 'node:fs/promises';
+import { access, lstat, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
 import type { Scenario } from './config.js';
@@ -13,6 +13,26 @@ async function exists(filePath: string): Promise<boolean> {
   }
 }
 
+async function assertionPath(worktree: string, candidate: string): Promise<string> {
+  const normalized = candidate.replace(/\\/g, '/');
+  if (!normalized || normalized.includes('\0') || normalized.startsWith('/') ||
+    path.win32.isAbsolute(candidate) || normalized.split('/').some((segment) =>
+      !segment || segment === '.' || segment === '..' || segment === '.git' || segment.includes(':'))) {
+    throw new Error('Unsafe assertion path.');
+  }
+  let current = path.resolve(worktree);
+  for (const segment of normalized.split('/')) {
+    current = path.join(current, segment);
+    try {
+      const info = await lstat(current);
+      if (info.isSymbolicLink()) throw new Error('Symlinked assertion path.');
+    } catch (error) {
+      if (['ENOENT', 'ENOTDIR'].includes((error as NodeJS.ErrnoException)?.code ?? '')) break;
+      throw error;
+    }
+  }
+  return current;
+}
 function isOrderedSubsequence(expected: string[], actual: string[]): boolean {
   if (expected.length === 0) return true;
   let expectedIndex = 0;
@@ -63,22 +83,30 @@ export async function evaluateExpectations(
   }
 
   for (const file of expected?.files_exist ?? []) {
-    if (!(await exists(path.join(worktree, file)))) failures.push(`Expected file does not exist: ${file}`);
-  }
-
-  for (const file of expected?.files_absent ?? []) {
-    if (await exists(path.join(worktree, file))) failures.push(`Expected file to be absent: ${file}`);
-  }
-
-  for (const assertion of expected?.file_contains ?? []) {
     try {
-      const content = await readFile(path.join(worktree, assertion.path), 'utf8');
-      if (!content.includes(assertion.text)) failures.push(`File ${assertion.path} does not contain expected text`);
+      if (!(await exists(await assertionPath(worktree, file)))) failures.push(`Expected file does not exist: ${file}`);
     } catch {
-      failures.push(`Could not read file for content assertion: ${assertion.path}`);
+      failures.push(`Unsafe files_exist assertion path: ${file}`);
     }
   }
-
+  for (const file of expected?.files_absent ?? []) {
+    try {
+      if (await exists(await assertionPath(worktree, file))) failures.push(`Expected file to be absent: ${file}`);
+    } catch {
+      failures.push(`Unsafe files_absent assertion path: ${file}`);
+    }
+  }
+  for (const assertion of expected?.file_contains ?? []) {
+    try {
+      const file = await assertionPath(worktree, assertion.path);
+      const info = await lstat(file);
+      if (!info.isFile() || info.size > 4 * 1024 * 1024) throw new Error('Unsafe or oversized file.');
+      const content = await readFile(file, 'utf8');
+      if (!content.includes(assertion.text)) failures.push(`File ${assertion.path} does not contain expected text`);
+    } catch {
+      failures.push(`Could not safely read file for content assertion: ${assertion.path}`);
+    }
+  }
   for (const text of expected?.claude_output_contains ?? []) {
     if (!claudeOutput.includes(text)) failures.push(`Claude output does not contain expected text: ${JSON.stringify(text)}`);
   }

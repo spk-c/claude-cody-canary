@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import type { Scenario } from './config.js';
 import { findExecutable } from './doctor.js';
@@ -10,7 +11,8 @@ import type { RunResult } from './types.js';
 import { CANARY_VERSION } from './version.js';
 
 export interface ResultCacheIdentity {
-  schemaVersion: 1;
+  schemaVersion: 2;
+  runtimeConfigHash: string;
   scenarioHash: string;
   gitCommit: string;
   executableSha256: string;
@@ -22,7 +24,7 @@ export interface ResultCacheIdentity {
 }
 
 export interface CachedRunEnvelope {
-  schemaVersion: 1;
+  schemaVersion: 2;
   key: string;
   identity: ResultCacheIdentity;
   createdAt: string;
@@ -47,6 +49,26 @@ function sha256Json(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 }
 
+async function runtimeConfigFingerprint(repoRoot: string): Promise<string> {
+  const files = [
+    'CLAUDE.md', 'CLAUDE.local.md', '.mcp.json',
+    '.claude/settings.json', '.claude/settings.local.json', '.claude/CLAUDE.md',
+  ].map((file) => path.join(repoRoot, file));
+  files.push(path.join(homedir(), '.claude.json'), path.join(homedir(), '.claude', 'settings.json'));
+  const digest = createHash('sha256');
+  for (const file of files.sort()) {
+    digest.update(file);
+    try { digest.update(await sha256File(file)); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') digest.update('<missing>');
+      else throw error;
+    }
+  }
+  for (const [key, value] of Object.entries(process.env)
+    .filter(([key]) => /^(ANTHROPIC_|CLAUDE_|MCP_|OPENAI_|AWS_|GOOGLE_|VERTEX_)/.test(key))
+    .sort(([a], [b]) => a.localeCompare(b))) digest.update(JSON.stringify([key, value]));
+  return digest.digest('hex');
+}
 export async function buildResultCacheIdentity(options: {
   cwd: string;
   scenarioSource: string;
@@ -61,7 +83,8 @@ export async function buildResultCacheIdentity(options: {
   if (!executable) throw new Error(`Result reuse requires a resolvable executable so it can be fingerprinted: ${options.executable}`);
   const nodeMajor = process.versions.node.split('.')[0];
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    runtimeConfigHash: await runtimeConfigFingerprint(repoRoot),
     scenarioHash: createHash('sha256').update(options.scenarioSource).digest('hex'),
     gitCommit,
     executableSha256: await sha256File(executable),
@@ -92,9 +115,10 @@ export async function readCachedRun(cacheRoot: string, identity: ResultCacheIden
   let envelope: CachedRunEnvelope;
   try { envelope = JSON.parse(raw) as CachedRunEnvelope; }
   catch { return undefined; }
-  if (envelope.schemaVersion !== 1 || envelope.key !== key) return undefined;
+  if (envelope.schemaVersion !== 2 || envelope.key !== key) return undefined;
   if (sha256Json(envelope.identity) !== sha256Json(identity)) return undefined;
-  if (!envelope.result || envelope.result.schemaVersion !== 1 || envelope.result.gitCommit !== identity.gitCommit) return undefined;
+  if (!envelope.result || envelope.result.schemaVersion !== 1 || envelope.result.gitCommit !== identity.gitCommit ||
+    envelope.result.passed !== true || !Array.isArray(envelope.result.failures) || envelope.result.failures.length !== 0) return undefined;
   return { ...envelope.result, artifactPath: undefined };
 }
 
@@ -103,7 +127,7 @@ export async function writeCachedRun(cacheRoot: string, identity: ResultCacheIde
   await mkdir(cacheRoot, { recursive: true });
   const file = cacheFile(cacheRoot, key);
   const temporary = `${file}.tmp-${process.pid}-${Date.now()}`;
-  const envelope: CachedRunEnvelope = { schemaVersion: 1, key, identity, createdAt: new Date().toISOString(), result: { ...result, artifactPath: undefined } };
+  const envelope: CachedRunEnvelope = { schemaVersion: 2, key, identity, createdAt: new Date().toISOString(), result: { ...result, artifactPath: undefined } };
   await writeFile(temporary, `${JSON.stringify(envelope, null, 2)}\n`, 'utf8');
   await rename(temporary, file);
   return file;
@@ -132,6 +156,6 @@ export async function runScenarioWithCache(
   const cached = await readCachedRun(cacheRoot, identity);
   if (cached) return { result: cached, cacheHit: true, cacheKey: key };
   const result = await runScenario(scenario, options);
-  await writeCachedRun(cacheRoot, identity, result);
+  if (result.passed) await writeCachedRun(cacheRoot, identity, result);
   return { result, cacheHit: false, cacheKey: key };
 }
