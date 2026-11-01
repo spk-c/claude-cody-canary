@@ -21,6 +21,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+          cache: npm
       - name: Use tested npm version
         run: npm install --global npm@11.19.1
       - name: Build a tarball from this exact commit
@@ -44,6 +45,7 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+          cache: npm
       - name: Download actual immutable public release and checksum
         env:
           GH_TOKEN: ${{ github.token }}
