@@ -46,3 +46,14 @@ The default CI independently tests real MCP stdio transport without paid APIs.
 The original Claude Code Canary project is attributed to SLP-DEV1, MIT License
 (see [LICENSE](LICENSE)). This repository's security changes and CI:
 [spk-c/claude-cody-canary](https://github.com/spk-c/claude-cody-canary).
+
+## Current release status and repository protection
+
+The source build and real Claude CLI/MCP smoke pass in CI; this is not the
+same as a successful paid-model `full` E2E run. See
+[Live E2E](docs/LIVE_E2E.md), [release process](docs/RELEASING.md), and
+[administrator branch protection](docs/REPOSITORY_SECURITY.md).
+
+CodeQL, Dependabot and full-dependency `npm audit` workflows are included.
+The release workflow **refuses to publish** without evidence from an exact-SHA
+successful full live test. No npm publication is enabled.
