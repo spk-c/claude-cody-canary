@@ -1,79 +1,45 @@
-# Claude Code Canary — community distribution mirror
+# Claude Code Canary — source-restored security fork
 
-Deterministic regression and compatibility testing for Claude Code releases,
-MCP servers, plugins, scenarios and CI.
+Claude Code regression testing, MCP contract checking, release comparison, plugin
+compatibility testing, and evidence capture.
 
-> **Repository status (November 2026):** This fork currently contains the
-> **precompiled JavaScript distribution** of Claude Code Canary v2.1.0 and its
-> JSON schemas, **not the original TypeScript source tree**. The original
-> `src/`, `tsconfig.json`, development tests, docs and Marketplace
-> `action.yml` were not included in the imported snapshot. A new npm v3
-> lockfile now pins this distribution's dependency graph. The checked-in
-> JavaScript is the code maintained here until original sources are restored.
-> Do not assume this repository can rebuild the distribution from TypeScript,
-> or that it provides a GitHub Marketplace Action.
+This fork now includes the TypeScript source, tests, documentation, examples and
+GitHub Action from a publicly accessible archive of the original MIT project
+(version 2.1.0). The import provenance and safety limitations are documented in
+[Source restoration](docs/SOURCE_RESTORATION.md).
 
-## Install and verify
+**Security:** The permission probe denies rather than auto-approves requests.
+Isolated Git worktrees are not OS sandboxes. Never run untrusted scenarios with
+production credentials or on unrestricted hosts.
 
-Requires Node.js 20+ and Git.
+## Develop and test
 
-```bash
+Node.js 20+ and Git are required.
+
+```sh
 git clone https://github.com/spk-c/claude-cody-canary.git
 cd claude-cody-canary
-npm ci --ignore-scripts
+npm ci
 npm run check
-node dist/v2-cli.js --help
+node dist/v2-cli.js doctor
 ```
 
-This repository is marked `private: true` in npm metadata to prevent
-accidentally republishing the upstream package name from this mirror.
-For a local `claude-canary` command, use `npm link` after installing.
-The CLI depends on an authenticated Claude Code setup for scenarios that
-actually invoke Claude; syntax/security regression tests don't invoke Claude.
+`npm run check` validates TypeScript, runs Vitest, builds all JavaScript output,
+then executes security and MCP/CLI integration tests and documentation checks.
+The lockfile pins production and development dependencies; CI runs `npm ci`.
 
-## Core commands
+## Live authenticated Claude Code E2E
 
-```bash
-claude-canary doctor
-claude-canary init
-claude-canary validate .canary/basic.canary.yml
-claude-canary run .canary/basic.canary.yml
-claude-canary compare .canary/basic.canary.yml --from 2.1.220 --to latest
-claude-canary mcp-snapshot .canary/mcp/github.mcp.yml
-claude-canary plugin-init ./my-plugin
-claude-canary plugin-suite --plugin ./my-plugin --last 10
-```
+The manual [Live Claude Code E2E workflow](.github/workflows/live-claude-e2e.yml)
+installs the actual Claude Code CLI and exercises a disposable Git scenario via
+`scripts/live-e2e.mjs`. It requires the `ANTHROPIC_API_KEY` GitHub Actions
+repository secret, and intentionally does not run on pull requests.
+Without that credential, **a real provider-backed test is not verified**.
 
-## Security model
+The default CI independently tests real MCP stdio transport without paid APIs.
 
-- A detached Git worktree isolates tracked file modifications, **not operating-system
-  permissions**. Scenario setup/verification commands execute locally with user rights.
-- Canary permission instrumentation **records and denies** permission requests; it
-  never automatically approves them. Tests that require privileged execution
-  need an explicitly configured, separate, disposable environment.
-- Scenario pack installation rejects symlinked input and output path components.
-- `repro --force` only replaces Canary-marked reproduction bundles inside a
-  repository; it refuses unowned or symlinked destinations.
-- Compatibility bundles verify all files against their attestation; extra files
-  and symlinks invalidate verification. If the attestation file resides inside
-  the bundle, specify its location via `--attestation`.
-- The MCP inspector enforces an 8 MiB limit on a single unbroken stdout frame.
-- Result reuse fingerprints local/global Claude configuration and provider
-  environment values. External service state can still change independently.
-  Use `--reuse-results` only for trusted, reproducible environments.
-- Review reproduction bundles before sharing; pattern-based secret redaction
-  cannot identify every project-specific secret.
+## Credits
 
-## Development and CI
-
-`npm run check` validates JavaScript syntax and package entrypoints and runs
-Node's built-in regression tests. CI tests Node.js 20 and 22 on Windows and Linux using `npm ci` and performs a production dependency vulnerability audit.
-There is currently **no TypeScript build step**; source maps point to original
-files that were not imported. The GitHub Action described by upstream documentation
-is not present in this mirror and is not advertised as available here.
-
-## Credits and license
-
-Based on **Claude Code Canary**, original package by SLP-DEV1, MIT licensed.
-See [LICENSE](LICENSE). This fork's fixes and issue tracker:
+The original Claude Code Canary project is attributed to SLP-DEV1, MIT License
+(see [LICENSE](LICENSE)). This repository's security changes and CI:
 [spk-c/claude-cody-canary](https://github.com/spk-c/claude-cody-canary).

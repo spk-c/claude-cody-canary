@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
+    "test": "vitest run test",
     "check": "npm run version:check && npm run lint && npm test && npm run build && npm run test:security && npm run test:smoke && npm run docs:check",
     "build": "tsc -p tsconfig.json",
     "test:security": "node --test tests/security-regressions.test.mjs",

@@ -38,7 +38,7 @@ const baseMetrics: RunMetrics = {
 };
 
 describe('headless permission probe', () => {
-  it('creates isolated MCP/hook instrumentation and returns the original tool input unchanged', async () => {
+  it('creates isolated MCP/hook instrumentation and refuses permission escalation', async () => {
     const scenario = parseScenario({
       version: 1,
       name: 'permissions',
@@ -78,8 +78,8 @@ describe('headless permission probe', () => {
       expect(responses).toHaveLength(3);
       const callResult = responses.find((response) => response.id === 3) as { result: { content: Array<{ text: string }> } };
       expect(JSON.parse(callResult.result.content[0].text)).toEqual({
-        behavior: 'allow',
-        updatedInput: { command: 'echo secret-value' },
+        behavior: 'deny',
+        message: 'Claude Canary permission probe does not approve tools.',
       });
 
       const measured = await probe.collect();
