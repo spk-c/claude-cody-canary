@@ -1,4 +1,4 @@
-import { open, rm, stat } from 'node:fs/promises';
+import { lstat, open, rm, stat } from 'node:fs/promises';
 /** Exclusive lock across Node processes; only expired abandoned locks may be reclaimed. */
 export async function withFileLock(lockPath, operation, { waitMs = 180_000, staleMs = 15 * 60_000, retryMs = 100 } = {}) {
     if (waitMs < 1 || staleMs < 1 || retryMs < 1)
@@ -10,8 +10,29 @@ export async function withFileLock(lockPath, operation, { waitMs = 180_000, stal
             handle = await open(lockPath, 'wx', 0o600);
         }
         catch (error) {
-            if (error.code !== 'EEXIST')
-                throw error;
+            const code = error.code;
+            if (code !== 'EEXIST') {
+                // Windows may surface a sharing violation as EPERM/EACCES during
+                // exclusive-file creation. Treat it as contention ONLY when an
+                // existing regular lock was independently observed. Other permission
+                // failures must propagate.
+                if (process.platform !== 'win32' || (code !== 'EPERM' && code !== 'EACCES'))
+                    throw error;
+                try {
+                    const existing = await lstat(lockPath);
+                    if (!existing.isFile() || existing.isSymbolicLink())
+                        throw error;
+                }
+                catch (inspectionError) {
+                    if (inspectionError === error)
+                        throw error;
+                    if (inspectionError.code !== 'ENOENT')
+                        throw error;
+                    // The contender released the lock between open() and lstat().
+                    // Do not pretend that arbitrary permission failures are safe.
+                    throw error;
+                }
+            }
         }
         if (handle) {
             try {

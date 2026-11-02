@@ -133,8 +133,23 @@ async function suiteCommand() {
         }
         return;
     }
+    const priorityFile = valueAfter('--priority-history');
+    let priorityHistory;
+    if (priorityFile) {
+        const loaded = await readJson(priorityFile);
+        if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded))
+            throw new Error('Invalid priority history file.');
+        for (const value of Object.values(loaded)) {
+            if (!value || typeof value !== 'object' || Array.isArray(value) ||
+                !Number.isSafeInteger(value.failureCount) ||
+                Number(value.failureCount) < 0)
+                throw new Error('Invalid priority history entry.');
+        }
+        priorityHistory = loaded;
+    }
     const result = await runSuite(suitePath, {
         ...options,
+        priorityHistory,
         concurrency: positiveInt(valueAfter('--concurrency'), '--concurrency'),
         maxRuns: positiveInt(valueAfter('--max-runs'), '--max-runs'),
         failFast: hasFlag('--fail-fast'),

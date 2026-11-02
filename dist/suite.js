@@ -10,6 +10,7 @@ import { runScenarioWithCache } from './result-cache.js';
 import { runScenario } from './runner.js';
 import { getRepoRoot, resolveCommit } from './git.js';
 import { CANARY_VERSION } from './version.js';
+import { prioritizeScenarios } from './smart-selection.js';
 const SuiteEntrySchema = z.object({
     path: z.string().min(1),
     tags: z.array(z.string().min(1)).default([]),
@@ -243,7 +244,11 @@ export async function runSuite(suitePath, options = {}) {
     const absoluteSuitePath = path.resolve(cwd, suitePath);
     const suite = await loadSuite(absoluteSuitePath);
     const selection = await explainSuiteSelection(suite, { cwd, tag: options.tag, changedPaths: options.changedPaths, shard: options.shard });
-    const resolved = selection.selected;
+    if (options.priorityHistory && options.shard)
+        throw new Error('History-based scheduling cannot change strict shard order.');
+    const resolved = options.priorityHistory
+        ? sortSuiteByPriority(selection.selected, options.priorityHistory, options.changedPaths ?? [])
+        : selection.selected;
     const executionIdentity = options.shard
         ? await suiteExecutionIdentity(absoluteSuitePath, selection, options, cwd)
         : undefined;
@@ -395,6 +400,16 @@ export function combineSuiteResults(results) {
         scenarios,
         failureClusters: clusterRunFailures(runResults),
     };
+}
+/** Deterministically prioritize selected cases; never drop an already selected test. */
+export function sortSuiteByPriority(selected, history, changedPaths) {
+    const scored = prioritizeScenarios(selected.map(item => ({
+        name: item.path, affects: item.affects, alwaysRun: item.always,
+        failureCount: history[item.path]?.failureCount ?? 0,
+        lastDurationMs: history[item.path]?.lastDurationMs,
+    })), changedPaths);
+    const rank = new Map(scored.map((x, i) => [x.scenario, i]));
+    return [...selected].sort((a, b) => (rank.get(a.path) ?? 0) - (rank.get(b.path) ?? 0));
 }
 export { formatSuiteMarkdown, parseShard };
 //# sourceMappingURL=suite.js.map

@@ -55,6 +55,11 @@ export interface SuiteRunOptions {
     artifactLabel?: string;
     reuseResults?: boolean;
     cacheRoot?: string;
+    /** Optional local per-scenario failure history. Reorders but never deselects. */
+    priorityHistory?: Record<string, {
+        failureCount: number;
+        lastDurationMs?: number;
+    }>;
 }
 export interface SuiteScenarioResult {
     path: string;
@@ -106,5 +111,10 @@ declare function formatSuiteMarkdown(result: SuiteRunResult): string;
 export declare function suiteExecutionIdentity(absoluteSuitePath: string, selection: SuiteSelection, options: SuiteRunOptions, cwd: string): Promise<string>;
 export declare function runSuite(suitePath: string, options?: SuiteRunOptions): Promise<SuiteRunResult>;
 export declare function combineSuiteResults(results: SuiteRunResult[]): SuiteRunResult;
+/** Deterministically prioritize selected cases; never drop an already selected test. */
+export declare function sortSuiteByPriority(selected: ResolvedSuiteScenario[], history: Record<string, {
+    failureCount: number;
+    lastDurationMs?: number;
+}>, changedPaths: string[]): ResolvedSuiteScenario[];
 export { formatSuiteMarkdown, parseShard };
 //# sourceMappingURL=suite.d.ts.map

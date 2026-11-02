@@ -56,4 +56,10 @@ export { auditClaudeSettings } from './security-audit.js';
 export { discoverAgentAdapters, KNOWN_AGENT_ADAPTERS } from './agent-adapters.js';
 export { prioritizeScenarios } from './smart-selection.js';
 export { renderHistoryDashboard, buildHistoryDashboard } from './history-dashboard.js';
+export { analyzeGithubRun } from './github-diagnostics.js';
+export { auditLiveMcp } from './mcp-live-audit.js';
+export { agentReadOnlyArgs, runAgentTest } from './agent-runner.js';
+export { minimizeDependentSteps, replayMinimizeScenario, validateReplayScenario } from './scenario-replay.js';
+export { importHistorySqlite, queryHistorySqlite, queryHistoryTrends, renderStoredHistory } from './history-sqlite.js';
+export { sortSuiteByPriority } from './suite.js';
 //# sourceMappingURL=api.js.map

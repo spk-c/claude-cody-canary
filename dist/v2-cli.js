@@ -120,7 +120,14 @@ else {
             '  security audit <json>      Static Claude permissions and hook review\n' +
             '  agent doctor               Discover Claude/Codex/Qwen executable adapters\n' +
             '  smart select <json>         Prioritize affected and historically failing tests\n' +
-            '  dashboard <index> <html>    Generate an offline interactive history view');
+            '  dashboard <index> <html>    Generate an offline interactive history view\n' +
+            '  ci run <owner> <repo> <id>   Read historical GitHub Actions attempt metadata\n' +
+            '  mcp live <contract>         Trusted read-only MCP audit; --negative is loopback only\n' +
+            '  minimize replay <json>      Approved isolated scenario command replay\n' +
+            '  agent run <agent> <file>    Approved read-only Claude/Codex/Qwen run\n' +
+            '  history sqlite-import <index> <db>   Persist sanitized history (Node 22+)\n' +
+            '  history sqlite-trends <db>          Local daily history metrics\n' +
+            '  history sqlite-dashboard <db> <html>   Export local offline HTML');
     }
 }
 export {};
