@@ -4,7 +4,9 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
-### 2.2.0 candidate (prepared; no GitHub Release yet)
+- Prevent false npm publish verification failures caused by registry processing delay.
+
+## [2.2.0] - 2026-11-02
 
 - Retry failed release-watch candidates and classify incomplete infrastructure results.
 - Inspect modern MCP 2026-07-28 over stateless stdio and bounded read-only Streamable HTTP.
@@ -14,6 +16,7 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 - Exercise both packaged utilities in Linux, Windows and macOS clean-consumer tests.
 - Add release archive build-provenance attestation support, with the v4 action update.
 - Preserve backward-compatible CLI schemas and optional paid E2E.
+- Publish the GitHub release and existing `claude-code-canary` npm package with GitHub OIDC Trusted Publishing and signed provenance.
 
 
 ### Published fork patch v2.1.1 (2026-11-01)
