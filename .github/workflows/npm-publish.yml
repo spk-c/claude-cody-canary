@@ -1,0 +1,117 @@
+name: Publish npm (trusted OIDC)
+run-name: npm claude-code-canary ${{ inputs.version }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact stable version (for example 2.2.0)
+        required: true
+        type: string
+      confirmation:
+        description: Type PUBLISH_NPM to approve npm registry publication
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: canary-npm-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          package-manager-cache: false
+      - name: Use CI-tested npm version with OIDC support
+        run: npm install --global npm@11.19.1
+      - name: Validate manual authorization and target name
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = 'refs/heads/main' || { echo 'Publishing is only allowed from main'; exit 1; }
+          test "$INPUT_CONFIRMATION" = 'PUBLISH_NPM' || { echo 'Explicit PUBLISH_NPM confirmation required'; exit 1; }
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo 'Main checkout SHA mismatch'; exit 1; }
+          node scripts/normalize-release-version.mjs "$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          node -e "const p=require('./package.json'); if(p.name!=='claude-code-canary'||p.private) process.exit(1)"
+          test "$(npm --version)" = '11.19.1'
+      - name: Require a published immutable GitHub Release and checkout its exact tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_TAG: ${{ steps.release.outputs.tag }}
+          INPUT_VERSION: ${{ inputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release view "$EXPECTED_TAG" --json tagName,isDraft,isPrerelease > "$RUNNER_TEMP/canary-release.json"
+          node -e "const d=require(process.argv[1]);if(d.tagName!==process.env.EXPECTED_TAG||d.isDraft||d.isPrerelease) process.exit(1)" "$RUNNER_TEMP/canary-release.json"
+          git fetch --no-tags origin "refs/tags/$EXPECTED_TAG:refs/tags/$EXPECTED_TAG"
+          git merge-base --is-ancestor "refs/tags/$EXPECTED_TAG^{commit}" "$GITHUB_SHA" || { echo 'Release tag is not contained in main'; exit 1; }
+          git checkout --detach "refs/tags/$EXPECTED_TAG"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$EXPECTED_TAG^{commit}")"
+          node scripts/normalize-release-version.mjs "$INPUT_VERSION" > /dev/null
+          node -e "const p=require('./package.json'); if(p.name!=='claude-code-canary'||p.private) process.exit(1)"
+      - name: Rebuild, test and audit the tagged source
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts --no-fund
+          npm run check
+          npm run check:dist
+          npm audit --audit-level=high
+          npm pack --dry-run --ignore-scripts
+      - name: Match the packaged bytes to the published GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          mkdir -p "$RUNNER_TEMP/npm-local-pack" "$RUNNER_TEMP/github-release-pack"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/npm-local-pack"
+          gh release download "$EXPECTED_TAG" --dir "$RUNNER_TEMP/github-release-pack" \
+            --pattern "claude-code-canary-${VERSION}.tgz" --pattern 'SHA256SUMS'
+          (cd "$RUNNER_TEMP/github-release-pack" && sha256sum --check SHA256SUMS)
+          cmp "$RUNNER_TEMP/github-release-pack/claude-code-canary-${VERSION}.tgz" \
+            "$RUNNER_TEMP/npm-local-pack/claude-code-canary-${VERSION}.tgz"
+          mkdir -p "$RUNNER_TEMP/prepublish-consumer"
+          npm install --prefix "$RUNNER_TEMP/prepublish-consumer" \
+            "$RUNNER_TEMP/npm-local-pack/claude-code-canary-${VERSION}.tgz" \
+            --ignore-scripts --no-audit --no-fund
+          cp tests/fixtures/package-consumer-smoke.mjs "$RUNNER_TEMP/prepublish-consumer/smoke.mjs"
+          node "$RUNNER_TEMP/prepublish-consumer/smoke.mjs"
+      - name: Publish verified package via npm Trusted Publishing (OIDC)
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN NPM_TOKEN NPM_CONFIG__AUTH_TOKEN
+          npm publish --provenance --access public --ignore-scripts
+      - name: Verify published npm package and all packaged binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./package.json').version")"
+          test "$(npm view "claude-code-canary@${VERSION}" version)" = "$VERSION"
+          mkdir -p "$RUNNER_TEMP/npm-registry-consumer"
+          npm install --prefix "$RUNNER_TEMP/npm-registry-consumer" \
+            "claude-code-canary@${VERSION}" --ignore-scripts --no-audit --no-fund
+          cp tests/fixtures/package-consumer-smoke.mjs "$RUNNER_TEMP/npm-registry-consumer/smoke.mjs"
+          node "$RUNNER_TEMP/npm-registry-consumer/smoke.mjs"

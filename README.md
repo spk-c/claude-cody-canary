@@ -42,7 +42,7 @@ The last command uses this repository's included *local* MCP stdio fixture: no A
 
 To check your own server, create and review a [contract file](docs/MCP_CONTRACTS.md) and then run `node dist/v2-cli.js mcp-check path/to/server.mcp.yml`. MCP contracts can launch commands; only run servers and files you trust.
 
-**Prefer an installable archive?** Download the release's `.tgz` and `SHA256SUMS`, verify the checksum, and install the tarball in a new project following [distribution and installation](docs/DISTRIBUTION.md). The package is **not published by this fork to the npm registry**, so `npm install claude-code-canary` is not a verified installation method.
+**Prefer an installable archive?** Download the release's `.tgz` and `SHA256SUMS`, verify the checksum, and install the tarball in a new project following [distribution and installation](docs/DISTRIBUTION.md). The existing [npm package `claude-code-canary`](https://www.npmjs.com/package/claude-code-canary) is maintained under the original `slp-dev1` npm account; its current published version is **2.1.0**, not this fork's 2.2.0 candidate. The fork's **new npm trusted-publishing workflow is prepared but has not yet published a version**. Until a new fork release has actually reached npm, use the verified GitHub v2.1.1 tarball for this fork. See [npm publishing and ownership](docs/NPM_PUBLISHING.md).
 
 ## GitHub Actions: offline MCP contract gate
 

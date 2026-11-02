@@ -45,3 +45,27 @@ test('CLI fails on a mismatched version without producing an output', () => {
   assert.equal(result.stdout, '');
   assert.match(result.stderr, /mismatch/);
 });
+
+test('npm publication keeps the original package name without accidental private flag', () => {
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const lock = JSON.parse(readFileSync(new URL('../package-lock.json', import.meta.url), 'utf8'));
+  assert.equal(pkg.name, 'claude-code-canary');
+  assert.notEqual(pkg.private, true);
+  assert.equal(lock.name, pkg.name);
+  assert.equal(lock.packages[''].name, pkg.name);
+  assert.equal(lock.version, pkg.version);
+});
+
+test('npm release workflow requires trusted OIDC, manual approval and verified GitHub release', () => {
+  const source = readFileSync(new URL('../.github/workflows/npm-publish.yml', import.meta.url), 'utf8');
+  for (const requirement of [
+    'workflow_dispatch:', 'id-token: write', "test \"$GITHUB_REF\" = 'refs/heads/main'",
+    'PUBLISH_NPM', 'gh release view', 'git merge-base --is-ancestor',
+    'npm run check', 'npm run check:dist', 'npm audit --audit-level=high',
+    'sha256sum --check SHA256SUMS', 'cmp "$RUNNER_TEMP/github-release-pack/',
+    'package-consumer-smoke.mjs', 'npm publish --provenance --access public',
+  ]) {
+    assert.ok(source.includes(requirement), 'Missing npm publish safety contract: ' + requirement);
+  }
+  assert.doesNotMatch(source, /secrets\.NPM_TOKEN|secrets\.NODE_AUTH_TOKEN|secrets\.NPMJS_TOKEN/);
+});

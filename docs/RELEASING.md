@@ -40,10 +40,7 @@ absence of such a test must not be mistaken for verified model compatibility.
 
 ## npm publication
 
-`package.json` retains `"private": true`. See [npm ownership and trusted publishing](NPM_PUBLISHING.md). The release workflow creates a
-GitHub Release, **not** an npm registry publication. A separately selected
-package name, ownership verification and Trusted Publishing are needed before
-adding npm publication.
+The name `claude-code-canary` is owned by the original npm maintainer `slp-dev1` and remains unchanged. npm publication has its own manually triggered [Trusted Publishing workflow](../.github/workflows/npm-publish.yml), but **has not happened for v2.2.0**. First publish the immutable GitHub Release, then configure the existing package at npm (owner access, 2FA and OIDC Trusted Publisher), and only then dispatch the npm workflow using `confirmation=PUBLISH_NPM`. See [exact npm setup and troubleshooting](NPM_PUBLISHING.md).
 
 ## Future version updates
 

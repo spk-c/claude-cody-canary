@@ -12,7 +12,7 @@ in earlier archived documentation are **not** proof of availability here.
 | GitHub Release | **v2.1.1 published**; immutable tag and downloadable package | [v2.1.1](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.1) |
 | Composite GitHub Action | Source in repository at an exact tag; test independently before adopting | `spk-c/claude-cody-canary@v2.1.1` |
 | Floating Action channel | **Not published**; do not use `@v2` or `@v1` with this fork | Use the immutable tag |
-| npm registry | **Not published by this fork**; `package.json` intentionally has `"private": true` | Install the Release tarball directly |
+| npm registry | Existing [`claude-code-canary`](https://www.npmjs.com/package/claude-code-canary) v2.1.0 belongs to the original `slp-dev1` maintainer; **v2.2.0 from this fork is not published yet** | [npm publishing setup](NPM_PUBLISHING.md) |
 | GitHub Marketplace | No Marketplace listing is claimed for this fork | Use the tagged Action directly |
 
 The fork includes an archived/restored TypeScript v2.1.0 source tree (with later fork fixes). See
@@ -90,6 +90,8 @@ maintained at `spk-c/claude-cody-canary`; preserve upstream attribution.
 The recommended GitHub description/topics and the steps needed to apply them
 are documented in [repository metadata](REPOSITORY_METADATA.md). README or
 package changes do not themselves update GitHub About settings.
+
+Removing `private: true` prepares the unchanged package name for a deliberate npm release; it does **not** publish anything or grant the fork ownership of the npm package. The dedicated [trusted-publishing workflow](../.github/workflows/npm-publish.yml) additionally requires a published exact GitHub Release, npm's one-time Trusted Publisher configuration and manual confirmation.
 
 The newly developed 2026 MCP stdio/HTTP inspector, retry-safe watch behavior,
 verified suite identities, digest reuse, DAG scripts and history indexing are

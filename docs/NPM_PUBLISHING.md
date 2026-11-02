@@ -1,13 +1,50 @@
-# Optional npm publication — ownership gate
+# npm publishing — existing claude-code-canary package
 
-This source-restored fork currently distributes **GitHub Release tarballs**, not npm registry releases. The package remains private by design to prevent accidental publication to a package name controlled by somebody else.
+**Current status (2026-11-02):** The unscoped npm package [`claude-code-canary`](https://www.npmjs.com/package/claude-code-canary) already exists at **2.1.0**, with npm maintainer **`slp-dev1`** and historical source `SLP-DEV1/claude-code-canary`. The maintainer has confirmed access to that npm account; however, the authenticated npm Trusted Publisher connection **has not yet been configured or verified**. The newer **v2.2.0 fork build has not been published to npm**.
 
-## Preconditions before enabling npm publish
+The repository keeps the **same package name**, `claude-code-canary`, with GitHub repository metadata pointing to `https://github.com/spk-c/claude-cody-canary`. It remains a clearly attributed independent source-restored MIT fork; updating npm metadata does not imply official Anthropic endorsement.
 
-1. Choose an npm package name **owned by the maintainer** (prefer a verified scope), check availability and verify `npm owner ls <name>` / npm organization access. Neither a GitHub username nor repository ownership proves npm namespace control.
-2. Configure npm Trusted Publishing (OIDC) for this exact GitHub repository and the publishing workflow, with minimal `id-token: write` and no long-lived npm token. Ensure npm provenance and 2FA policies are satisfied.
-3. Update `package.json` name and `package-lock.json` root package metadata in one reviewed change. Update import smoke tests, documentation and any consumers because renaming affects module imports.
-4. Remove `private: true` **only after** verified ownership and publishing configuration. Add a dedicated manually dispatched, immutable-tag-only publish workflow with an explicit confirmation gate. It must validate the tag and commit, run all checks, inspect `npm pack` and use `npm publish --provenance --access public` without a stored npm automation token.
-5. Install the actually published package in a clean consumer and verify API imports, both standalone utilities, checksums and intended version. Do not claim npm publication from a successful dry run.
+## One-time npm package owner setup
 
-GitHub Release publishing is independently available and must not be blocked by the optional npm channel. The v2.2.0 release candidate does **not** silently claim npm availability.
+1. Sign in at [npmjs.com](https://www.npmjs.com/) with **`slp-dev1`** (the current package owner) and enable account 2FA if not already enabled. This cannot be completed using GitHub permissions alone.
+2. Open [the package on npm](https://www.npmjs.com/package/claude-code-canary), choose **Settings → Trusted publishing → Add trusted publisher → GitHub Actions**.
+3. Enter these values **exactly** (case sensitive):
+   - **Organization or user:** `spk-c`
+   - **Repository:** `claude-cody-canary`
+   - **Workflow filename:** `npm-publish.yml` (filename only, no path)
+   - **Environment:** leave empty (this workflow does not declare an environment)
+   - **Allowed actions:** enable **Allow `npm publish`**. `npm stage publish` alone is insufficient. Grant `npm dist-tag` only if a separate workflow ever needs it.
+4. Save the Trusted Publisher. **A new configuration expires if no successful publish occurs within two days**; complete the first publication promptly, or create a fresh connection when ready.
+
+GitHub's workflow is configured to use **npm 11.19.1 on Node.js 24**, a GitHub-hosted Ubuntu runner, `id-token: write`, and **no long-lived npm token**. npm OIDC requires npm >=11.5.1, Node >=22.14 and a configured Trusted Publisher matching the workflow.
+
+After the first successful trusted publish, consider **Settings → Publishing access → Require two-factor authentication and disallow tokens** on npm. Traditional tokens are not required by this workflow.
+
+## Publication order: GitHub Release first, npm second
+
+1. Merge the changes to `main`, verify that all CI checks and the tagged release packaging tests are green.
+2. Publish the next **immutable GitHub Release `v2.2.0`** using [.github/workflows/release.yml](../.github/workflows/release.yml), from `main` with `version=2.2.0` and `confirmation=PUBLISH`. This creates the exact tarball and `SHA256SUMS` and checks its source and contents. Do not silently rewrite `v2.1.1` or an existing npm version.
+3. Once npm Trusted Publishing is configured for the exact workflow filename, use **[Publish npm (trusted OIDC)](../.github/workflows/npm-publish.yml)** from `main` with `version=2.2.0` and `confirmation=PUBLISH_NPM`.
+4. The npm workflow requires the published, non-draft GitHub Release, the exact corresponding Git tag, and a successful clean build and test of that tag. It compares the built tarball **byte-for-byte** with the previously published GitHub Release asset and verifies its checksum before calling `npm publish --provenance --access public` via GitHub OIDC.
+5. The workflow verifies the published npm version and installs `claude-code-canary@2.2.0` into a clean consumer, checking CLI, API, DAG and History utilities.
+
+If any validation fails, **npm publication must not happen**. A successful GitHub Release and a successful `npm pack` alone do **not** mean that npm was updated.
+
+After successful publication users can run:
+
+```sh
+npm install --global claude-code-canary@2.2.0
+claude-canary --version
+```
+
+`claude-canary-dag` and `claude-canary-history` are the other two installed commands. When making the next version, increase the version in `package.json`, lockfile, source and committed `dist/` together, and publish a **new immutable release**.
+
+## Troubleshooting
+
+- **npm 403 / permission denied:** Confirm that `slp-dev1` still owns the package and that Trusted Publishing was configured in that package's Settings. GitHub ownership alone cannot grant npm write access.
+- **npm 404 / OIDC exchange refused:** Confirm `spk-c`, `claude-cody-canary`, `npm-publish.yml`, any optional environment and the **Allow npm publish** setting exactly match. Check whether the Trusted Publisher has expired.
+- **GitHub Release missing / checksum mismatch:** Publish the expected immutable release first; do not bypass artifact verification or point a tag at different code.
+- **Version already exists:** npm versions are immutable; publish a higher unused version instead.
+- **No model-backed tests:** Successful source/consumer CI does not imply that the optional paid Anthropic API E2E has run.
+
+See [npm Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/) and [release instructions](RELEASING.md).
