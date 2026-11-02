@@ -1,7 +1,36 @@
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import type { ProcessResult } from './types.js';
 
 const DEFAULT_MAX_OUTPUT_CHARS = 16 * 1024 * 1024;
+
+/**
+ * Kill the entire subprocess tree rather than only its direct parent.
+ * On POSIX, children are created in their own process group. Windows lacks
+ * POSIX process groups, so taskkill /T /F is used to terminate descendants.
+ */
+function terminateProcessTree(child: ChildProcess): void {
+  if (!child.pid || child.exitCode !== null) return;
+  if (process.platform === 'win32') {
+    try {
+      const killer = spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
+        windowsHide: true,
+        stdio: 'ignore',
+      });
+      killer.on('error', () => child.kill('SIGKILL'));
+      killer.on('exit', (code) => {
+        if (code !== 0) child.kill('SIGKILL');
+      });
+    } catch {
+      child.kill('SIGKILL');
+    }
+    return;
+  }
+  try {
+    process.kill(-child.pid, 'SIGKILL');
+  } catch {
+    child.kill('SIGKILL');
+  }
+}
 
 interface SpawnOptions {
   cwd: string;
@@ -42,6 +71,7 @@ export async function spawnCapture(
         cwd: options.cwd,
         env: options.env ?? process.env,
         shell: false,
+        detached: process.platform !== 'win32',
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
       });
@@ -64,7 +94,7 @@ export async function spawnCapture(
       const remaining = maxOutputChars - used;
       if (remaining <= 0) {
         outputTruncated = true;
-        child.kill('SIGKILL');
+        terminateProcessTree(child);
         return;
       }
       const accepted = text.slice(0, remaining);
@@ -72,7 +102,7 @@ export async function spawnCapture(
       else stderr += accepted;
       if (accepted.length < text.length) {
         outputTruncated = true;
-        child.kill('SIGKILL');
+        terminateProcessTree(child);
       }
     };
 
@@ -99,7 +129,7 @@ export async function spawnCapture(
     if (options.timeoutMs && options.timeoutMs > 0) {
       timer = setTimeout(() => {
         timedOut = true;
-        child.kill('SIGKILL');
+        terminateProcessTree(child);
       }, options.timeoutMs);
       timer.unref();
     }

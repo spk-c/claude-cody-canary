@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { bisectReleases } from './bisect.js';
@@ -66,7 +66,13 @@ async function readState(file: string): Promise<WatchState | undefined> {
 
 async function saveState(file: string, state: WatchState): Promise<void> {
   await mkdir(path.dirname(file), { recursive: true });
-  await writeFile(file, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
+  const temporary = `${file}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  try {
+    await writeFile(temporary, `${JSON.stringify(state, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' });
+    await rename(temporary, file);
+  } finally {
+    await rm(temporary, { force: true });
+  }
 }
 
 function formatWatchMarkdown(result: WatchResult): string {

@@ -1,3 +1,7 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { spawnCapture } from '../src/process.js';
 
@@ -65,4 +69,20 @@ describe('process capture', () => {
     expect(result.outputTruncated).toBe(false);
   });
 
+  it('stops descendants of a timed-out subprocess', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'canary-process-tree-'));
+    const childFile = path.join(root, 'grandchild.cjs');
+    const parentFile = path.join(root, 'parent.cjs');
+    const marker = path.join(root, 'survived.txt');
+    try {
+      await writeFile(childFile, `setTimeout(() => require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'orphan'), 1500);\n`);
+      await writeFile(parentFile, `require('node:child_process').spawn(process.execPath, [${JSON.stringify(childFile)}], { stdio: 'ignore' }).unref(); setInterval(() => {}, 1000);\n`);
+      const result = await spawnCapture(process.execPath, [parentFile], { cwd: root, timeoutMs: 700 });
+      expect(result.timedOut).toBe(true);
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      expect(existsSync(marker)).toBe(false);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 10_000);
 });
