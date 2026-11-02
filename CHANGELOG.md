@@ -4,6 +4,9 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Parse Codex `exec --json` as a bounded event stream, accumulating verified `turn.completed` token usage without double-counting cached/reasoning subsets; reject malformed or failed terminal evidence.
+- Mark provider telemetry unavailable when valid JSON has no supported usage fields, keep prompts and raw outputs out of reports, and separate Codex positional prompts from CLI flags with `--`.
+
 ## [2.3.0] - 2026-11-02
 
 - Extend the CI Analyzer with real read-only GitHub Actions run/attempt/job retrieval; retain original cancelled/failed jobs across successful reruns.

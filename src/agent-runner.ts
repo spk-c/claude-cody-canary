@@ -18,7 +18,7 @@ export function agentReadOnlyArgs(agent:KnownAgent,prompt:string):string[]{
   if(!prompt.trim()||prompt.length>8000)throw new Error('Agent prompt must have 1–8000 characters.');
   switch(agent){
     case 'claude':return ['-p',prompt,'--output-format','json','--permission-mode','plan','--no-session-persistence'];
-    case 'codex':return ['exec','--json','--ephemeral','--sandbox','read-only','--skip-git-repo-check',prompt];
+    case 'codex':return ['exec','--json','--ephemeral','--sandbox','read-only','--skip-git-repo-check','--',prompt];
     case 'qwen':return ['-p',prompt,'--output-format','json','--approval-mode','plan'];
     default:throw new Error('Unsupported agent; refusing unknown commands.');
   }
@@ -27,10 +27,33 @@ function isObj(v:unknown):v is Record<string,unknown>{return v!==null&&typeof v=
 function safeUsage(v:unknown):{cost?:number;tokens?:number}|undefined {
   if(!isObj(v))return;
   const usage=isObj(v.usage)?v.usage:v;
-  const tokenFields=['input_tokens','output_tokens','inputTokens','outputTokens'];
-  const nums=tokenFields.map(k=>usage[k]).filter((n):n is number=>typeof n==='number'&&Number.isFinite(n)&&n>=0);
-  const cost=typeof v.total_cost_usd==='number'&&Number.isFinite(v.total_cost_usd)&&v.total_cost_usd>=0?v.total_cost_usd:undefined;
-  return {cost,tokens:nums.length?nums.reduce((a,b)=>a+b,0):undefined};
+  const input=usage.input_tokens??usage.inputTokens;
+  const output=usage.output_tokens??usage.outputTokens;
+  const tokens=Number.isSafeInteger(input)&&typeof input==='number'&&input>=0
+    &&Number.isSafeInteger(output)&&typeof output==='number'&&output>=0
+    &&Number.isSafeInteger(input+output)?input+output:undefined;
+  const cost=typeof v.total_cost_usd==='number'&&Number.isFinite(v.total_cost_usd)
+    &&v.total_cost_usd>=0?v.total_cost_usd:undefined;
+  return tokens!==undefined||cost!==undefined?{cost,tokens}:undefined;
+}
+/** Only turn.completed has authoritative Codex usage; item events can contain arbitrary text. */
+function parseCodexEvents(stdout:string):{completed:boolean;failed:boolean;tokens?:number} {
+  let tokens=0,completed=0,failed=false;
+  for(const line of stdout.split(/\r?\n/)){
+    if(!line.trim())continue;
+    let event:unknown;
+    try{event=JSON.parse(line) as unknown;}
+    catch{return {completed:false,failed:true};}
+    if(!isObj(event)||typeof event.type!=='string')return {completed:false,failed:true};
+    if(event.type==='turn.failed'||event.type==='error')failed=true;
+    if(event.type!=='turn.completed')continue;
+    const usage=safeUsage(event);
+    if(usage?.tokens===undefined||!Number.isSafeInteger(tokens+usage.tokens))
+      return {completed:false,failed:true};
+    tokens+=usage.tokens;
+    completed++;
+  }
+  return {completed:completed>0,failed,tokens:completed>0?tokens:undefined};
 }
 /** Executes a reviewed, read-only one-shot agent and drops raw prompts/output. */
 export async function runAgentTest(opts:AgentTestOptions):Promise<AgentTestResult>{
@@ -46,19 +69,21 @@ export async function runAgentTest(opts:AgentTestOptions):Promise<AgentTestResul
   });
   let telemetry:'recognized'|'unavailable'='unavailable';
   let reportedCostUsd:number|undefined,totalTokens:number|undefined;
+  let codexCompleted=false,codexFailed=false;
   if(!result.outputTruncated){
-    try {
-      const parsed=opts.agent==='codex'
-        ?result.stdout.trim().split(/\r?\n/).map(s=>{try{return JSON.parse(s) as unknown;}catch{return null;}}).filter(isObj).slice(-1)[0]
-        :JSON.parse(result.stdout) as unknown;
-      if(isObj(parsed)){
-        telemetry='recognized';
-        const data=safeUsage(parsed);
-        reportedCostUsd=data?.cost;totalTokens=data?.tokens;
-      }
-    }catch{ /* Unknown provider output is explicitly marked unavailable. */ }
+    if(opts.agent==='codex'){
+      const events=parseCodexEvents(result.stdout);
+      codexCompleted=events.completed;codexFailed=events.failed;
+      if(events.tokens!==undefined){telemetry='recognized';totalTokens=events.tokens;}
+    }else{
+      try{
+        const data=safeUsage(JSON.parse(result.stdout) as unknown);
+        if(data){telemetry='recognized';reportedCostUsd=data.cost;totalTokens=data.tokens;}
+      }catch{ /* Unknown provider output is explicitly marked unavailable. */ }
+    }
   }
-  return {schemaVersion:1,agent:opts.agent,passed:result.code===0&&!result.timedOut&&!result.outputTruncated,
+  const codexValid=opts.agent!=='codex'||(codexCompleted&&!codexFailed);
+  return {schemaVersion:1,agent:opts.agent,passed:result.code===0&&!result.timedOut&&!result.outputTruncated&&codexValid,
     exitCode:result.code,timedOut:result.timedOut,durationMs:result.durationMs,
     outputTruncated:result.outputTruncated===true,telemetry,reportedCostUsd,totalTokens};
 }
