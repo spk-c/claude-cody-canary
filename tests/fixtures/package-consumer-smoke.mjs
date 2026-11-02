@@ -21,8 +21,13 @@ for (const flag of ['--version','--help']) {
 }
 console.log('Clean package consumer successfully imported API and ran CLI.');
 
-// The npm tarball must contain both standalone utilities, not just the CLI.
+// The immutable v2.1.1 asset predates these commands; verify legacy releases
+// against their original CLI/API contract while fully exercising v2.2+ archives.
 const packageRoot = path.join(here, 'node_modules', 'claude-code-canary');
+const installedVersion = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8')).version;
+const [major, minor] = installedVersion.split('.').map(Number);
+if (major > 2 || (major === 2 && minor >= 2)) {
+// The npm tarball must contain both standalone utilities, not just the CLI.
 const dagPath = path.join(packageRoot, 'scripts', 'dag-orchestrator.mjs');
 const historyPath = path.join(packageRoot, 'scripts', 'build-history-index.mjs');
 await access(dagPath);
@@ -40,3 +45,4 @@ const indexed = JSON.parse(await readFile(path.join(historyDir, 'history-index.j
 assert.equal(indexed.entries, 1);
 assert.doesNotMatch(JSON.stringify(indexed), /DO_NOT_PUBLISH|smoke/);
 console.log('Packaged DAG/History binaries and privacy-safe history index verified.');
+}
