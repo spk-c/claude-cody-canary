@@ -45,3 +45,33 @@ Review input files. Commands accept local files (bounded by size), do not launch
 5. Implement and validate distinct Claude, Qwen and Codex execution adapters with explicit user permission and telemetry normalization.
 
 These are not represented as completed until actual integration tests pass.
+
+## Extended integrated features
+
+The following additional CLI commands require the locally rebuilt source (until a new version is published):
+
+```sh
+claude-canary ci run spk-c claude-cody-canary 41522087038
+claude-canary mcp live ./trusted.mcp.yml --trusted
+claude-canary mcp live ./local.mcp.yml --trusted --negative
+claude-canary agent run codex ./review-prompt.txt --trusted
+claude-canary minimize replay ./trusted-replay.json --trusted
+claude-canary suite ./release.suite.yml --priority-history ./priorities.json
+claude-canary history sqlite-import .canary/results/history-index.json .canary/results/history.sqlite
+claude-canary history sqlite-trends .canary/results/history.sqlite
+claude-canary history sqlite-dashboard .canary/results/history.sqlite ./dashboard.html
+```
+
+**GitHub Actions diagnostics** retrieve metadata across attempts, not raw logs. A public repository can be inspected without credentials; private repositories can use `--token-env GITHUB_TOKEN` with a least-privilege environment variable. Original failed attempts remain in results after successful retries.
+
+**Live MCP** always requires a reviewed contract and explicit `--trusted` acknowledgement. Its normal checks use existing read-only discovery, never `tools/call`. Negative/malformed request tests use a maximum of three requests and can run only against numeric loopback HTTP endpoints. No redirect following or credential forwarding; an OS network sandbox is not supplied.
+
+**Agent execution** requires explicit `--trusted`, a prompt file, and runs Claude in plan mode, Codex in a read-only sandbox, or Qwen in plan mode. Agents may still make provider API calls/costs. Raw prompt/output, credentials and transcripts are not retained in results. Provider-specific metrics are emitted only when recognized. Native read-only modes are not substitutes for running within a real OS sandbox when testing untrusted extensions.
+
+**Scenario minimization** runs approved shell commands inside a fresh detached Git worktree for each test. This is not an OS sandbox and is suitable for trusted fixture repositories only. Input schema: `{version:1,steps:[{id,command,dependsOn?:string[]}],verifyCommand,expectedExitCode, failureMarker?}`. A matching failure exit code (and optional marker) must reproduce in the original case. Execution is bounded by time, attempts and step count.
+
+**Suite prioritization** takes a `--priority-history` JSON map of normalized scenario path to `{failureCount,lastDurationMs?}`. It changes only the order of selected tests and is intentionally rejected in strict shard mode, preserving deterministic shard identity. No selected test is dropped.
+
+**Persistent history** uses Node.js built-in SQLite on **Node 22.5+**; Canary's other CLI commands still support Node.js 20. It stores only sanitized run/suite/watch summaries from the existing history index with idempotent imports and bounded retention. It refuses a symlink database. No hosted service or model subscription is required.
+
+Full automated model-backed production performance benchmarking, multi-provider token normalization, remote MCP protocol-fuzz coverage and a full generic multi-round-trip MCP client are out of scope here; do not claim those as complete conformance certifications.

@@ -321,3 +321,15 @@ export { prioritizeScenarios } from './smart-selection.js';
 export type { SmartScenario, SmartSelection } from './smart-selection.js';
 export { renderHistoryDashboard, buildHistoryDashboard } from './history-dashboard.js';
 export type { HistoryDashboardInput, HistoryDashboardRecord } from './history-dashboard.js';
+
+export { analyzeGithubRun } from './github-diagnostics.js';
+export type { GithubJobDiagnostic, GithubRunDiagnostic } from './github-diagnostics.js';
+export { auditLiveMcp } from './mcp-live-audit.js';
+export type { LiveMcpFinding, LiveMcpAudit, LiveMcpOptions } from './mcp-live-audit.js';
+export { agentReadOnlyArgs, runAgentTest } from './agent-runner.js';
+export type { AgentTestOptions, AgentTestResult } from './agent-runner.js';
+export { minimizeDependentSteps, replayMinimizeScenario, validateReplayScenario } from './scenario-replay.js';
+export type { ReplayStep, ReplayScenario, ReplayOptions } from './scenario-replay.js';
+export { importHistorySqlite, queryHistorySqlite, queryHistoryTrends, renderStoredHistory } from './history-sqlite.js';
+export type { HistoryStoreResult, HistoryTrend } from './history-sqlite.js';
+export { sortSuiteByPriority } from './suite.js';
