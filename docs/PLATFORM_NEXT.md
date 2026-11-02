@@ -1,7 +1,6 @@
 # Experimental platform features (development branch)
 
-This document describes source-level features introduced **after** published v2.2.0.
-They are not yet available through the immutable v2.2.0 package or Action.
+This document documents the platform capabilities added for **v2.3.0**. Earlier published releases, including immutable v2.2.0, do not contain these features.
 
 ## Offline CLI, no API key required
 
@@ -48,7 +47,7 @@ These are not represented as completed until actual integration tests pass.
 
 ## Extended integrated features
 
-The following additional CLI commands require the locally rebuilt source (until a new version is published):
+The following integrated CLI commands are available in v2.3.0:
 
 ```sh
 claude-canary ci run spk-c claude-cody-canary 41522087038

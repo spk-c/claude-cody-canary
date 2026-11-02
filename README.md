@@ -27,10 +27,10 @@ Detect breaking changes between Claude Code releases, run repeatable scenarios i
 
 ## Start here: run an offline MCP check
 
-The **published stable fork release is [v2.2.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.2.0)**. Node.js **20+** and Git are required.
+The **stable fork release is [v2.3.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.3.0)**. Node.js **20+** and Git are required.
 
 ~~~sh
-git clone --branch v2.2.0 --depth 1 https://github.com/spk-c/claude-cody-canary.git
+git clone --branch v2.3.0 --depth 1 https://github.com/spk-c/claude-cody-canary.git
 cd claude-cody-canary
 npm ci
 npm run build
@@ -42,14 +42,14 @@ The last command uses this repository's included *local* MCP stdio fixture: no A
 
 To check your own server, create and review a [contract file](docs/MCP_CONTRACTS.md) and then run `node dist/v2-cli.js mcp-check path/to/server.mcp.yml`. MCP contracts can launch commands; only run servers and files you trust.
 
-**Prefer an installable archive?** Download the release's `.tgz` and `SHA256SUMS`, verify the checksum, and install the tarball in a new project following [distribution and installation](docs/DISTRIBUTION.md). **npm installation is available:** `npm install --global claude-code-canary@2.2.0`. Version **2.2.0** was published by this fork via npm Trusted Publishing with signed provenance. The original package name and MIT attribution are preserved. See [npm publishing](docs/NPM_PUBLISHING.md).
+**Prefer an installable archive?** Download the release's `.tgz` and `SHA256SUMS`, verify the checksum, and install the tarball in a new project following [distribution and installation](docs/DISTRIBUTION.md). **npm installation is available:** `npm install --global claude-code-canary@2.3.0`. Version **2.3.0** is prepared for npm Trusted Publishing by this fork via npm Trusted Publishing with signed provenance. The original package name and MIT attribution are preserved. See [npm publishing](docs/NPM_PUBLISHING.md).
 
 ## GitHub Actions: offline MCP contract gate
 
 For a repository with a reviewed contract at `.canary/mcp/server.mcp.yml`, use the exact stable tag:
 
 ~~~yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: mcp-check
     mcp-contract: .canary/mcp/server.mcp.yml
@@ -58,9 +58,9 @@ For a repository with a reviewed contract at `.canary/mcp/server.mcp.yml`, use t
 
 This runs a real local contract check and needs no paid API. The full [GitHub Action guide](docs/GITHUB_ACTION.md) covers scenario suites, release watch, PR checks, result artifacts and safe credential handling. There is **no floating `@v2` Action tag** in this fork.
 
-## Development and new v2.2.0 utilities
+## Release v2.3.0 and existing v2.2 utilities
 
-The [v2.2.0 GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.2.0) and [npm v2.2.0 package](https://www.npmjs.com/package/claude-code-canary/v/2.2.0) are published. The release tarball passed CI, security checks, clean installation and provenance attestation.
+The [v2.3.0 GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.3.0) and [npm v2.3.0 package](https://www.npmjs.com/package/claude-code-canary/v/2.3.0) are published. The release tarball passed CI, security checks, clean installation and provenance attestation.
 
 For development from `main`:
 
@@ -72,7 +72,7 @@ npm run check
 node dist/v2-cli.js --help
 ~~~
 
-Version 2.2.0 ships the standalone commands `claude-canary-dag` and `claude-canary-history`. In a source checkout, use `npm run dag:run -- <manifest.yml>` and `npm run history:index -- .canary/results`. After npm installation, run `claude-canary-dag <manifest.yml>` and `claude-canary-history .canary/results`. See [DAG and history guide](docs/ORCHESTRATION_HISTORY.md) and [scaling guide](docs/SCALING.md).
+Version 2.3.0 retains the standalone commands `claude-canary-dag` and `claude-canary-history`. In a source checkout, use `npm run dag:run -- <manifest.yml>` and `npm run history:index -- .canary/results`. After npm installation, run `claude-canary-dag <manifest.yml>` and `claude-canary-history .canary/results`. See [DAG and history guide](docs/ORCHESTRATION_HISTORY.md) and [scaling guide](docs/SCALING.md).
 
 ## Verified examples, not mock screenshots
 
@@ -80,7 +80,9 @@ Recent [CI evidence with actual log excerpts](docs/CI_EVIDENCE.md) includes the 
 
 The separate [authenticated Claude Code E2E workflow](.github/workflows/live-claude-e2e.yml) requires an `ANTHROPIC_API_KEY` secret and manual dispatch from `main`. It is not a release gate and is not claimed to have passed merely because offline CI is green.
 
-## Experimental platform development\n\nPost-v2.2.0 source work adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These are **not** part of the already published npm v2.2.0 package. See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Documentation\n
+## New platform capabilities in v2.3.0
+
+Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These are **not** part of the already published npm v2.2.0 package. See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Documentation\n
 | Guide | Topics |
 | --- | --- |
 | [Getting started / distribution](docs/DISTRIBUTION.md) | Stable releases, source checkout, checksums, package and Action installation |

@@ -80,7 +80,7 @@ export { createBundleAttestation, verifyBundleAttestation } from './attestation.
 export type { BundleAttestation, BundleAttestationFile } from './attestation.js';
 export { CanaryExitCode, exitCodeForSuite, exitCodeForWatch } from './exit-codes.js';
 export { CANARY_VERSION } from './version.js';
-/** Experimental, offline-first platform features (not part of v2.2.0 npm). */
+/** Offline-first platform features introduced in v2.3.0 (not part of v2.2.0 npm). */
 export { analyzeCiLog, groupCiInsights } from './ci-insights.js';
 export type { CiFailureKind, CiInsight } from './ci-insights.js';
 export { validateMcpEnvelopes, mcpMalformedCorpus } from './mcp-conformance.js';

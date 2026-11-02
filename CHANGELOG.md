@@ -4,6 +4,8 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-11-02
+
 - Extend the CI Analyzer with real read-only GitHub Actions run/attempt/job retrieval; retain original cancelled/failed jobs across successful reruns.
 - Introduce an explicitly approved live MCP conformance audit with bounded read-only discovery and loopback-only negative probes.
 - Add read-only one-shot Claude, Codex and Qwen runner adapters with provider-specific flags and privacy-preserving normalized evidence.

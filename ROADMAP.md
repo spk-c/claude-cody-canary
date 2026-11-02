@@ -6,7 +6,7 @@ Claude Code Canary exists to answer one question reliably:
 
 ## Status
 
-The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. **Implementation does not mean that all enhancements have been published in the historical immutable v2.1.1 release; the latest published version is v2.2.0.** The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
+The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. **Implementation does not mean that all enhancements have been published in the historical immutable v2.1.1 release; the next prepared release is v2.3.0.** The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
 
 | Milestone | Implementation status | Implemented capabilities |
 | --- | --- | --- |
@@ -86,7 +86,7 @@ Every future roadmap item should preserve these constraints:
 
 The historical release record is maintained in [CHANGELOG.md](CHANGELOG.md).
 
-## Experimental next-platform development (post-v2.2.0)
+## v2.3.0 integrated platform development
 
 The development branch introduces bounded offline foundations for CI failure analysis, JSON-RPC envelope checks, delta minimization, statistical pass rates, plugin/security inventory, test prioritization, local history visualization and Claude/Codex/Qwen executable discovery.
 

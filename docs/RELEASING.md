@@ -1,6 +1,6 @@
 # Releasing the source-restored fork
 
-The latest published GitHub Release and npm package are **v2.2.0** (2026-11-02). For future releases, update source, lockfile and committed `dist/` together, run CI, and manually publish an immutable release. Model-backed
+The v2.3.0 release candidate is prepared; the previously published immutable GitHub Release and npm package were **v2.2.0** (2026-11-02). For future releases, update source, lockfile and committed `dist/` together, run CI, and manually publish an immutable release. Model-backed
 Claude E2E and GitHub branch protection are **not** requirements.
 
 ## Release checks

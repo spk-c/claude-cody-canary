@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: spk-c/claude-cody-canary@v2.2.0
+      - uses: spk-c/claude-cody-canary@v2.3.0
         with:
           mode: pr-check
           scenario: .canary/basic.canary.yml
@@ -68,7 +68,7 @@ claude-canary baseline update .canary/basic.canary.yml
 Commit the generated `.canary/baselines/<scenario-name>.json`, then use:
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: baseline-check
     scenario: .canary/basic.canary.yml
@@ -83,7 +83,7 @@ See [Committed baselines](BASELINES.md).
 MCP contract checks do not require Claude or a model credential. They initialize the configured stdio MCP server directly and compare its exposed protocol surface with explicit expectations and, by default, a committed known-good snapshot.
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: mcp-check
     mcp-contract: .canary/mcp/github.mcp.yml
@@ -118,19 +118,19 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: spk-c/claude-cody-canary@v2.2.0
+      - uses: spk-c/claude-cody-canary@v2.3.0
         with:
           mode: plugin-suite
           plugin: ./my-plugin
           last: 10
 ```
 
-This fork currently has **no floating `v2` or `v1` tag**. Always use the latest **actually published immutable tag** (`spk-c/claude-cody-canary@v2.2.0` at the time of writing) or a reviewed commit SHA. Version 2.2.0 is a published immutable GitHub Action tag. Model-backed modes require separately configured Claude access.
+This fork currently has **no floating `v2` or `v1` tag**. Always use the latest **actually published immutable tag** (`spk-c/claude-cody-canary@v2.3.0` at the time of writing) or a reviewed commit SHA. Version 2.3.0 is a prepared immutable GitHub Action tag. Model-backed modes require separately configured Claude access.
 
 ## Run a first-class scenario suite
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: suite
     suite: .canary/release.suite.yml
@@ -144,7 +144,7 @@ Suites provide deterministic selection, bounded concurrency, sharding, run budge
 For deterministic CI sharding:
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: suite
     suite: .canary/release.suite.yml
@@ -154,7 +154,7 @@ For deterministic CI sharding:
 ## Watch new Claude Code releases
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: watch
     suite: .canary/release.suite.yml
@@ -166,7 +166,7 @@ Run this mode from a trusted scheduled workflow. Canary stores small non-secret 
 ## Compare two Claude Code releases
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: compare
     scenario: .canary/basic.canary.yml
@@ -179,7 +179,7 @@ Run this mode from a trusted scheduled workflow. Canary stores small non-secret 
 ## Run one scenario
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: run
     scenario: .canary/basic.canary.yml
@@ -188,7 +188,7 @@ Run this mode from a trusted scheduled workflow. Canary stores small non-secret 
 ## Run one plugin scenario across releases
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.2.0
+- uses: spk-c/claude-cody-canary@v2.3.0
   with:
     mode: plugin-matrix
     scenario: .canary/plugins/my-plugin/command-review.canary.yml
@@ -329,16 +329,14 @@ permissions:
   actions: read
 steps:
   - uses: actions/checkout@v7
-  - uses: spk-c/claude-cody-canary@v2.2.0
+  - uses: spk-c/claude-cody-canary@v2.3.0
     with:
       mode: ci-analyze
       ci-run-id: '41522087038'
       ci-repository: spk-c/claude-cody-canary
 ```
 
-**Distribution note:** `ci-analyze` is part of source development and is **not present in
-the immutable published v2.2.0 Action**. Use a reviewed source commit until the
-next official release is available and update this example to the new tag then.
+**Distribution note:** `ci-analyze` was added in v2.3.0; earlier Action releases, including v2.2.0, do not support it.
 
 The Action passes a scoped `GITHUB_TOKEN` only to `ci-analyze`. It uses
 `GET` endpoints to inspect attempt/job metadata and does not fetch private
