@@ -10,7 +10,7 @@ describe('MCP 2026 read-only Streamable HTTP',()=>{
       for await(const chunk of req)payload+=chunk.toString();
       const call=JSON.parse(payload);
       methods.push(call.method);
-      expect(req.headers.accept).toBe('application/json');
+      expect(req.headers.accept).toBe('application/json, text/event-stream');
       expect(req.headers['mcp-protocol-version']).toBe('2026-07-28');
       expect(req.headers['mcp-method']).toBe(call.method);
       expect(call.params._meta['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28');

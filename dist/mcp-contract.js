@@ -5,6 +5,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 import { z } from 'zod';
 import { CANARY_VERSION } from './version.js';
+import { classifyMcpResult, parseMcpSseResponse } from './mcp-wire.js';
 const nameExpectations = z.object({
     require: z.array(z.string().min(1)).default([]),
     deny: z.array(z.string().min(1)).default([]),
@@ -232,8 +233,13 @@ class StdioMcpClient {
         }
         else {
             if (this.statelessProtocol === '2026-07-28') {
-                if (!isRecord(message.result) || message.result.resultType !== 'complete') {
-                    pending.reject(new Error('MCP 2026 response is missing resultType=complete; interactive input_required is not supported in read-only inspection.'));
+                try {
+                    const kind = classifyMcpResult(message.result, 'read-only-discovery');
+                    if (kind !== 'complete')
+                        throw new Error('MCP MRTR input_required cannot be fulfilled by read-only discovery.');
+                }
+                catch (error) {
+                    pending.reject(error instanceof Error ? error : new Error('Invalid MCP 2026 result.'));
                     return;
                 }
             }
@@ -251,7 +257,13 @@ class StdioMcpClient {
             const timer = setTimeout(() => {
                 this.pending.delete(id);
                 reject(new Error(`MCP request ${method} timed out after ${timeoutMs}ms.`));
-                this.child.kill('SIGKILL');
+                // Legacy stdio cancellation is advisory; still terminate the server after grace.
+                try {
+                    this.notify('notifications/cancelled', { requestId: id, reason: 'deadline-exceeded' });
+                }
+                catch { /* already closed */ }
+                const kill = setTimeout(() => this.child.kill('SIGKILL'), 50);
+                kill.unref();
             }, timeoutMs);
             timer.unref();
             this.pending.set(id, { resolve, reject, timer });
@@ -322,9 +334,10 @@ class HttpMcpClient {
             redirect: 'manual',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
+                'Accept': 'application/json, text/event-stream',
                 'MCP-Protocol-Version': '2026-07-28',
                 'Mcp-Method': method,
+                ...(typeof params?.name === 'string' ? { 'Mcp-Name': params.name } : {}),
             },
             body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...(params ?? {}), _meta: meta } }),
             signal: AbortSignal.timeout(timeoutMs),
@@ -332,9 +345,10 @@ class HttpMcpClient {
         if (!response.ok)
             throw new Error(`MCP HTTP ${method} failed with HTTP ${response.status}.`);
         const contentType = response.headers.get('content-type') ?? '';
-        if (!/^application\/json(?:;|$)/i.test(contentType.trim())) {
-            throw new Error('MCP HTTP inspector currently requires application/json responses (SSE is unsupported).');
-        }
+        const json = /^application\/json(?:;|$)/i.test(contentType.trim());
+        const sse = /^text\/event-stream(?:;|$)/i.test(contentType.trim());
+        if (!json && !sse)
+            throw new Error('Unsupported MCP HTTP content type.');
         const maxBytes = 4 * 1024 * 1024;
         if (Number(response.headers.get('content-length') ?? '0') > maxBytes) {
             throw new Error('MCP HTTP response exceeded 4 MiB limit.');
@@ -353,22 +367,34 @@ class HttpMcpClient {
         }
         const text = Buffer.concat(chunks).toString('utf8');
         let message;
-        try {
-            message = JSON.parse(text);
+        if (sse) {
+            const parsed = parseMcpSseResponse(text, 1);
+            this.notifications.toolsListChanged += parsed.notifications.toolsListChanged;
+            this.notifications.promptsListChanged += parsed.notifications.promptsListChanged;
+            this.notifications.resourcesListChanged += parsed.notifications.resourcesListChanged;
+            message = parsed.response;
         }
-        catch {
-            throw new Error('MCP HTTP response is not valid JSON.');
+        else {
+            try {
+                message = JSON.parse(text);
+            }
+            catch {
+                throw new Error('MCP HTTP response is not valid JSON.');
+            }
         }
         if (!isRecord(message) || message.jsonrpc !== '2.0' || message.id !== 1) {
             throw new Error('MCP HTTP response must match JSON-RPC 2.0 request id.');
+        }
+        if (Object.hasOwn(message, 'result') === Object.hasOwn(message, 'error')) {
+            throw new Error('MCP HTTP response has ambiguous JSON-RPC outcome.');
         }
         if (isRecord(message.error)) {
             const code = typeof message.error.code === 'number' ? message.error.code : 'unknown';
             throw new Error(`MCP JSON-RPC request failed (code ${String(code)}).`);
         }
-        if (!isRecord(message.result) || message.result.resultType !== 'complete') {
-            throw new Error('MCP modern HTTP requires resultType=complete (interactive MRTR not supported).');
-        }
+        const kind = classifyMcpResult(message.result, method);
+        if (kind !== 'complete')
+            throw new Error('MCP MRTR input_required requires explicit user input; read-only inspector will not retry.');
         return message.result;
     }
     notify() { throw new Error('Stateless MCP HTTP has no initialized notification.'); }
@@ -483,6 +509,9 @@ export async function inspectMcpContract(contract, options = {}) {
                 throw new Error('MCP initialize result is missing protocolVersion.');
             }
             protocolVersion = initialized.protocolVersion;
+            if (protocolVersion !== contract.server.protocol_version) {
+                throw new Error('MCP initialized with an unexpected protocol version (no silent downgrade).');
+            }
             client.notify('notifications/initialized');
         }
         const capabilities = isRecord(initialized.capabilities) ? normalizeJson(initialized.capabilities) : {};

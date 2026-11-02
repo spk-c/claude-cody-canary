@@ -11,7 +11,10 @@ import { buildHistoryDashboard } from './history-dashboard.js';
 import { analyzeGithubRun } from './github-diagnostics.js';
 import { loadMcpContract } from './mcp-contract.js';
 import { auditLiveMcp } from './mcp-live-audit.js';
+import { auditStdioNegativeFixture } from './mcp-stdio-negative.js';
+import { probeMcpSubscriptions } from './mcp-subscriptions.js';
 import { runAgentTest } from './agent-runner.js';
+import { compareAgentCohorts } from './agent-compare.js';
 import { replayMinimizeScenario } from './scenario-replay.js';
 import { importHistorySqlite, queryHistoryTrends, renderStoredHistory } from './history-sqlite.js';
 import { writeFile } from 'node:fs/promises';
@@ -38,8 +41,8 @@ function integer(value, name) {
     return n;
 }
 export const PLATFORM_COMMANDS = [
-    ['ci', 'analyze'], ['ci', 'run'], ['mcp', 'conformance'], ['mcp', 'live'], ['minimize'], ['stats'], ['plugin', 'scan'],
-    ['security', 'audit'], ['agent', 'doctor'], ['agent', 'run'], ['smart', 'select'], ['dashboard'],
+    ['ci', 'analyze'], ['ci', 'run'], ['mcp', 'conformance'], ['mcp', 'live'], ['mcp', 'stdio-negative'], ['mcp', 'listen'], ['minimize'], ['stats'], ['plugin', 'scan'],
+    ['security', 'audit'], ['agent', 'doctor'], ['agent', 'run'], ['agent', 'compare'], ['smart', 'select'], ['dashboard'],
     ['history', 'sqlite-import'], ['history', 'sqlite-dashboard'], ['history', 'sqlite-trends'],
 ];
 export function isPlatformCommand(argv) {
@@ -60,6 +63,16 @@ export async function runPlatformCommand(argv) {
     }
     else if (cmd === 'mcp' && sub === 'conformance')
         result = validateMcpEnvelopes(JSON.parse(await readBounded(required(rest[0], 'MCP JSON array'))));
+    else if (cmd === 'mcp' && sub === 'listen') {
+        if (!rest.includes('--trusted'))
+            throw new Error('Explicit --trusted required for local subscriptions.');
+        result = await probeMcpSubscriptions(required(rest[0], 'numeric loopback MCP endpoint'), { trusted: true, maxNotifications: 1 });
+    }
+    else if (cmd === 'mcp' && sub === 'stdio-negative') {
+        if (!rest.includes('--trusted'))
+            throw new Error('Explicit --trusted required for stdio fixture testing.');
+        result = await auditStdioNegativeFixture(required(rest[0], 'absolute fixture path'), { trusted: true });
+    }
     else if (cmd === 'mcp' && sub === 'live') {
         if (!rest.includes('--trusted'))
             throw new Error('Explicit --trusted required for live MCP connection.');
@@ -88,6 +101,9 @@ export async function runPlatformCommand(argv) {
         result = auditClaudeSettings(JSON.parse(await readBounded(required(rest[0], 'settings JSON'))));
     else if (cmd === 'agent' && sub === 'doctor')
         result = await discoverAgentAdapters(process.cwd());
+    else if (cmd === 'agent' && sub === 'compare') {
+        result = compareAgentCohorts(JSON.parse(await readBounded(required(rest[0], 'baseline cohort'))), JSON.parse(await readBounded(required(rest[1], 'candidate cohort'))));
+    }
     else if (cmd === 'agent' && sub === 'run') {
         if (!rest.includes('--trusted'))
             throw new Error('Agent execution requires explicit --trusted.');

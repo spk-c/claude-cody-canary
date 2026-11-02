@@ -53,6 +53,10 @@ The following integrated CLI commands are available in v2.3.0:
 claude-canary ci run spk-c claude-cody-canary 41522087038
 claude-canary mcp live ./trusted.mcp.yml --trusted
 claude-canary mcp live ./local.mcp.yml --trusted --negative
+# Unreleased roadmap extensions (not in npm v2.3.0):
+claude-canary mcp stdio-negative C:/fixtures/reviewed.cjs --trusted
+claude-canary mcp listen http://127.0.0.1:3000/mcp --trusted
+claude-canary agent compare ./baseline-cohort.json ./candidate-cohort.json
 claude-canary agent run codex ./review-prompt.txt --trusted
 claude-canary minimize replay ./trusted-replay.json --trusted
 claude-canary suite ./release.suite.yml --priority-history ./priorities.json
@@ -72,6 +76,10 @@ claude-canary history sqlite-dashboard .canary/results/history.sqlite ./dashboar
 **Suite prioritization** takes a `--priority-history` JSON map of normalized scenario path to `{failureCount,lastDurationMs?}`. It changes only the order of selected tests and is intentionally rejected in strict shard mode, preserving deterministic shard identity. No selected test is dropped.
 
 **Persistent history** uses Node.js built-in SQLite on **Node 22.5+**; Canary's other CLI commands still support Node.js 20. It stores only sanitized run/suite/watch summaries from the existing history index with idempotent imports and bounded retention. It refuses a symlink database. No hosted service or model subscription is required.
+
+**Unreleased development extensions:** Streamable HTTP now consumes bounded request-scoped SSE event streams and validates notification/event correlation. MCP 2026-07-28 is stateless: it does **not** use the 2025 `Mcp-Session-Id` handshake; supported legacy stdio still initializes and checks negotiated versions. On stdio timeouts Canary sends a best-effort `notifications/cancelled` before terminating the process. The opt-in `mcp listen` command tests only numeric-loopback `subscriptions/listen`, requires an acknowledgement, and disconnects after one notification or a short timeout; it does not test remote subscription resilience. The opt-in `mcp stdio-negative` only launches a reviewed local `.cjs` test fixture under Node, without inherited process secrets, with three negative envelopes. The offline MRTR helper can construct a manually approved next-round request but never sends it, elicits input, or calls tools automatically.
+
+**Unreleased local analytics:** Offline dashboard includes up to 90 daily trend bars, failure grouping and Wilson intervals (only observed outcomes). `agent compare` requires versioned, strict cohort JSON with identical per-scenario SHA-256 hashes and uses conservative pass-rate intervals; token and cost metrics are marked not comparable for different providers. No live paid-model E2E benchmark or cross-provider price equivalence is implied. Further version × plugin × OS breakdown requires an expanded history schema, and interactive MRTR orchestration remains intentionally disabled for read-only audits.
 
 Full automated model-backed production performance benchmarking, multi-provider token normalization, remote MCP protocol-fuzz coverage and a full generic multi-round-trip MCP client are out of scope here; do not claim those as complete conformance certifications.
 

@@ -4,6 +4,13 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Support bounded MCP 2026 request-scoped SSE responses and read-only notification accounting; do not auto-answer MRTR or execute tools.
+- Add local-only, explicitly approved `mcp listen` subscription probes with streaming event limits and cancellation; provide `mcp stdio-negative` for trusted local CommonJS fixtures.
+- Add an offline, explicitly approved MRTR retry-envelope builder that validates answer keys and carries opaque server state without network calls.
+- Add privacy-bounded Claude/Codex/Qwen cohort comparison (`agent compare`) that requires matching scenario hashes and refuses cross-provider cost/token equivalence.
+- Extend the local dashboard with daily trends, failure grouping, known/unknown outcome counts and Wilson confidence bounds.
+- Reject silent legacy protocol version fallback and sanitize parser errors to avoid returning untrusted server content.
+
 - Parse Codex `exec --json` as a bounded event stream, accumulating verified `turn.completed` token usage without double-counting cached/reasoning subsets; reject malformed or failed terminal evidence.
 - Mark provider telemetry unavailable when valid JSON has no supported usage fields, keep prompts and raw outputs out of reports, and separate Codex positional prompts from CLI flags with `--`.
 - Add bounded MCP discovery request and wall-clock budgets across stdio and HTTP transports; harden negative JSON-RPC probes with exact response-ID correlation, URL fragment rejection, and strict timeout validation, and reject authentication or rate-limit HTTP errors as successful negative probes.

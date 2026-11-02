@@ -90,20 +90,20 @@ The historical release record is maintained in [CHANGELOG.md](CHANGELOG.md).
 
 The published v2.3.0 release includes bounded CI failure diagnostics, read-only live MCP discovery, opt-in loopback negative probes, scenario replay, optional SQLite history, and explicitly approved read-only Claude/Codex/Qwen one-shot execution. These are limited, opt-in features rather than complete protocol/fuzz conformance or standardized cross-provider benchmarks. See [platform feature guide](docs/PLATFORM_NEXT.md).
 
-## v2.4 MCP conformance — active work (Issue #41)
+## v2.4 MCP conformance — incremental development (Issue #41)
 
-- ✅ Existing read-only 2026-07-28 stdio and Streamable HTTP discovery; zero `tools/call` invocations.
-- ✅ Local-only opt-in malformed-envelope HTTP checks (maximum three), no redirects, no credential forwarding.
-- 🛠 Unreleased: enforce 24 total discovery requests and a 30-second wall-clock budget in live audits; correlate negative responses to exact request IDs and reject URLs containing fragments.
-- ⬜ Add explicit MCP session lifecycle, notifications/cancellation, safe negative stdio fixtures and MRTR handling; never run destructive tools automatically.
-- ⬜ Validate trusted transports, bounded output, privacy and platform parity with Linux/macOS/Windows CI before calling v2.4 complete.
+- [x] Modern 2026-07-28 stateless read-only discovery, exact version metadata and strict legacy stdio negotiation.
+- [x] Request-scoped Streamable HTTP SSE response parsing (bounded bodies, notifications, correlated final JSON-RPC response; no resumable events).
+- [x] Best-effort legacy stdio cancellation on timeout; explicit local `subscriptions/listen` probe validates acknowledgement and closes stream after bounded events.
+- [x] Trusted local stdio malformed-envelope tests with no tool calls or inherited secrets; numeric-loopback-only HTTP negative probes.
+- [x] Offline MRTR input-required classification and an explicitly approved retry-envelope builder; never auto-answer prompts or call tools.
+- [ ] Full interactive MRTR orchestration with user approval UI, remote authenticated transport conformance, cross-SDK interoperability and long-running subscription resilience remain open.
 
-## v2.5 dashboard and agent quality — planned (Issue #43)
+## v2.5 dashboard and agent quality — incremental development (Issue #43)
 
-- Extend local SQLite dashboards with failure clusters, searchable artifacts and reproducible version/OS/plugin comparisons.
-- Add statistically conservative repeated-run comparisons and clear insufficient-data/not-comparable states.
-- Improve provider-specific telemetry and credential isolation without persisting prompts or model outputs.
-
+- [x] Local offline trend bars, Wilson pass-rate interval, failure clusters and missing-data handling; SQLite remains optional.
+- [x] Strict versioned Claude/Codex/Qwen cohort comparison with identical scenario populations, per-provider evidence and explicit cross-provider not-comparable flags.
+- [ ] Add richer version × plugin × OS history schema, deep multi-run statistics, provider API integration and live model-backed E2E validation.
 ## v2.3 CI quality follow-ups — planned (Issue #42)
 
 - Test real GitHub workflow attempts including cancelled runners and permission edge cases.

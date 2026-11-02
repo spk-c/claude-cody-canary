@@ -82,7 +82,7 @@ The separate [authenticated Claude Code E2E workflow](.github/workflows/live-cla
 
 ## New platform capabilities in v2.3.0
 
-Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These are **not** part of the already published npm v2.2.0 package. See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Documentation\n
+Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These shipped in **npm v2.3.0**. Subsequent roadmap features on the development branch are not yet published; see the [platform guide](docs/PLATFORM_NEXT.md). See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Documentation\n
 | Guide | Topics |
 | --- | --- |
 | [Getting started / distribution](docs/DISTRIBUTION.md) | Stable releases, source checkout, checksums, package and Action installation |
