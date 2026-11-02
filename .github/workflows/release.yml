@@ -63,7 +63,7 @@ jobs:
           cd release-assets
           sha256sum *.tgz > SHA256SUMS
       - name: Attest release archive build provenance
-        uses: actions/attest-build-provenance@v3
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: release-assets/*.tgz
       - name: Create immutable release tag and GitHub Release
