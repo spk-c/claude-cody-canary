@@ -6,7 +6,7 @@ Claude Code Canary exists to answer one question reliably:
 
 ## Status
 
-The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. **Implementation does not mean that all enhancements have been published in the historical immutable v2.1.1 release; the next prepared release is v2.3.0.** The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
+The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. **Implementation does not mean that all enhancements have been published in the historical immutable v2.1.1 release; v2.3.0 was published to GitHub Releases and npm on 2026-11-02 (UTC). Later unreleased work remains on `main`.** The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
 
 | Milestone | Implementation status | Implemented capabilities |
 | --- | --- | --- |
@@ -86,9 +86,26 @@ Every future roadmap item should preserve these constraints:
 
 The historical release record is maintained in [CHANGELOG.md](CHANGELOG.md).
 
-## v2.3.0 integrated platform development
+## v2.3.0 published platform
 
-The development branch introduces bounded offline foundations for CI failure analysis, JSON-RPC envelope checks, delta minimization, statistical pass rates, plugin/security inventory, test prioritization, local history visualization and Claude/Codex/Qwen executable discovery.
+The published v2.3.0 release includes bounded CI failure diagnostics, read-only live MCP discovery, opt-in loopback negative probes, scenario replay, optional SQLite history, and explicitly approved read-only Claude/Codex/Qwen one-shot execution. These are limited, opt-in features rather than complete protocol/fuzz conformance or standardized cross-provider benchmarks. See [platform feature guide](docs/PLATFORM_NEXT.md).
 
-This is **not** a claim that the nine larger feature proposals are fully implemented: active MCP fuzzing, AI-assisted root cause assessment, full scenario minimization, live multi-agent test execution and a persistent dashboard are follow-up work. See [experimental platform feature guide](docs/PLATFORM_NEXT.md).
+## v2.4 MCP conformance — active work (Issue #41)
+
+- ✅ Existing read-only 2026-07-28 stdio and Streamable HTTP discovery; zero `tools/call` invocations.
+- ✅ Local-only opt-in malformed-envelope HTTP checks (maximum three), no redirects, no credential forwarding.
+- 🛠 Unreleased: enforce 24 total discovery requests and a 30-second wall-clock budget in live audits; correlate negative responses to exact request IDs and reject URLs containing fragments.
+- ⬜ Add explicit MCP session lifecycle, notifications/cancellation, safe negative stdio fixtures and MRTR handling; never run destructive tools automatically.
+- ⬜ Validate trusted transports, bounded output, privacy and platform parity with Linux/macOS/Windows CI before calling v2.4 complete.
+
+## v2.5 dashboard and agent quality — planned (Issue #43)
+
+- Extend local SQLite dashboards with failure clusters, searchable artifacts and reproducible version/OS/plugin comparisons.
+- Add statistically conservative repeated-run comparisons and clear insufficient-data/not-comparable states.
+- Improve provider-specific telemetry and credential isolation without persisting prompts or model outputs.
+
+## v2.3 CI quality follow-ups — planned (Issue #42)
+
+- Test real GitHub workflow attempts including cancelled runners and permission edge cases.
+- Provide privacy-safe failure triage suggestions and stronger dependency/fixture replay cases.
 

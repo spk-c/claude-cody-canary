@@ -337,14 +337,14 @@ class StdioMcpClient {
     this.child.stdin.write(`${JSON.stringify(message)}\n`);
   }
 
-  request(method: string, params?: Record<string, unknown>): Promise<unknown> {
+  request(method: string, params?: Record<string, unknown>, timeoutMs = this.timeoutMs): Promise<unknown> {
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`MCP request ${method} timed out after ${this.timeoutMs}ms.`));
+        reject(new Error(`MCP request ${method} timed out after ${timeoutMs}ms.`));
         this.child.kill('SIGKILL');
-      }, this.timeoutMs);
+      }, timeoutMs);
       timer.unref();
       this.pending.set(id, { resolve, reject, timer });
       try {
@@ -401,7 +401,7 @@ class HttpMcpClient {
     }
     this.url = url;
   }
-  async request(method: string, params?: Record<string, unknown>): Promise<unknown> {
+  async request(method: string, params?: Record<string, unknown>, timeoutMs = this.timeoutMs): Promise<unknown> {
     const meta = {
       'io.modelcontextprotocol/protocolVersion': '2026-07-28',
       'io.modelcontextprotocol/clientCapabilities': {},
@@ -417,7 +417,7 @@ class HttpMcpClient {
         'Mcp-Method': method,
       },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params: { ...(params ?? {}), _meta: meta } }),
-      signal: AbortSignal.timeout(this.timeoutMs),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) throw new Error(`MCP HTTP ${method} failed with HTTP ${response.status}.`);
     const contentType = response.headers.get('content-type') ?? '';
@@ -514,7 +514,16 @@ function compatibilitySurface(snapshot: Omit<McpContractSnapshot, 'fingerprint'>
   };
 }
 
-export async function inspectMcpContract(contract: McpContract, options: { cwd?: string; contractPath?: string } = {}): Promise<McpContractSnapshot> {
+export async function inspectMcpContract(contract: McpContract, options: {
+  cwd?: string; contractPath?: string; maxRequests?: number; maxDurationMs?: number;
+} = {}): Promise<McpContractSnapshot> {
+  const maxRequests = options.maxRequests ?? 500;
+  if (!Number.isSafeInteger(maxRequests) || maxRequests < 1 || maxRequests > 500) throw new Error('Invalid MCP discovery request budget.');
+  if (options.maxDurationMs !== undefined &&
+      (!Number.isSafeInteger(options.maxDurationMs) || options.maxDurationMs < 100 || options.maxDurationMs > 120_000)) {
+    throw new Error('Invalid MCP discovery duration budget.');
+  }
+  const deadline = options.maxDurationMs === undefined ? undefined : performance.now() + options.maxDurationMs;
   const base = options.contractPath ? path.dirname(path.resolve(options.contractPath)) : path.resolve(options.cwd ?? process.cwd());
   const serverCwd = path.resolve(base, contract.server.cwd ?? '.');
   const client = contract.server.transport === 'streamable-http'
@@ -528,11 +537,21 @@ export async function inspectMcpContract(contract: McpContract, options: { cwd?:
         contract.server.protocol_version,
       );
 
+  let requestCount = 0;
+  const guarded = {
+    request(method: string, params?: Record<string, unknown>): Promise<unknown> {
+      if (requestCount >= maxRequests) throw new Error('MCP discovery request budget exhausted.');
+      const remaining = deadline === undefined ? undefined : Math.ceil(deadline - performance.now());
+      if (remaining !== undefined && remaining <= 0) throw new Error('MCP discovery duration budget exhausted.');
+      requestCount++;
+      return client.request(method, params, remaining === undefined ? undefined : Math.min(contract.server.timeout_seconds * 1000, remaining));
+    },
+  };
   try {
     const modern = contract.server.protocol_version === '2026-07-28';
     const initialized = modern
-      ? await client.request('server/discover')
-      : await client.request('initialize', {
+      ? await guarded.request('server/discover')
+      : await guarded.request('initialize', {
           protocolVersion: contract.server.protocol_version,
           capabilities: {},
           clientInfo: { name: 'claude-code-canary', version: CANARY_VERSION },
@@ -558,17 +577,17 @@ export async function inspectMcpContract(contract: McpContract, options: { cwd?:
 
     const tools = valueAt(capabilities, ['tools']) === undefined
       ? []
-      : (await collectPages(client, 'tools/list', 'tools')).map(normalizeTool).sort((a, b) => a.name.localeCompare(b.name));
+      : (await collectPages(guarded, 'tools/list', 'tools')).map(normalizeTool).sort((a, b) => a.name.localeCompare(b.name));
     const prompts = valueAt(capabilities, ['prompts']) === undefined
       ? []
-      : (await collectPages(client, 'prompts/list', 'prompts')).map(normalizePrompt).sort((a, b) => a.name.localeCompare(b.name));
+      : (await collectPages(guarded, 'prompts/list', 'prompts')).map(normalizePrompt).sort((a, b) => a.name.localeCompare(b.name));
     const resources = valueAt(capabilities, ['resources']) === undefined
       ? []
-      : (await collectPages(client, 'resources/list', 'resources')).map(normalizeResource).sort((a, b) => a.uri.localeCompare(b.uri));
+      : (await collectPages(guarded, 'resources/list', 'resources')).map(normalizeResource).sort((a, b) => a.uri.localeCompare(b.uri));
     let resourceTemplates: McpResourceTemplateSnapshot[] = [];
     if (valueAt(capabilities, ['resources']) !== undefined) {
       try {
-        resourceTemplates = (await collectPages(client, 'resources/templates/list', 'resourceTemplates'))
+        resourceTemplates = (await collectPages(guarded, 'resources/templates/list', 'resourceTemplates'))
           .map(normalizeResourceTemplate)
           .sort((a, b) => a.uriTemplate.localeCompare(b.uriTemplate));
       } catch (error) {

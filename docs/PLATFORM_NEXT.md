@@ -1,4 +1,4 @@
-# Experimental platform features (development branch)
+# Platform features: v2.3.0 and unreleased hardening
 
 This document documents the platform capabilities added for **v2.3.0**. Earlier published releases, including immutable v2.2.0, do not contain these features.
 
@@ -22,26 +22,26 @@ node dist/v2-cli.js dashboard .canary/results/history-index.json .canary/results
 ### Scope and boundaries
 
 - **CI analysis** uses fixed signal codes, fingerprint grouping and recommended next actions. It does not send logs to a service or emit raw lines; it is a diagnostic heuristic, not proof of root cause.
-- **MCP conformance** validates saved JSON-RPC envelopes and includes a deterministic malformed-envelope corpus via the TypeScript API. It does not connect to untrusted MCP servers, fuzz live network endpoints, test all MCP methods, or support interactive MRTR.
+- **MCP conformance** validates offline JSON-RPC envelopes and includes bounded, explicitly trusted live discovery plus optional malformed-envelope probes against numeric loopback HTTP endpoints. It never calls `tools/call`. This is not full MCP conformance; remote active fuzzing, SSE, generic MRTR and notifications/cancellation remain unsupported.
 - **Regression minimization** is a bounded, predicate-driven delta debugger. Its CLI reduces a JSON string array by preserving a literal failure marker. Complex Claude scenario dependencies and environment state are not automatically minimized.
 - **Statistics** uses Wilson confidence intervals and conservative nonoverlap for pass/fail rates. Small samples are explicitly marked insufficient; this is not a formal replacement for experimental design.
 - **Plugin scanning** reuses existing symlink-safe plugin discovery without launching plugins; findings are structural recommendations, not runtime proof.
 - **Security audit** checks broad permission rules and simple risky hook patterns in static settings JSON. It does not execute hooks or audit all possible shell syntaxes.
-- **Agent adapters** report whether Claude, Codex and Qwen executables are available. Running Codex/Qwen and normalizing their telemetry will require explicit per-agent adapters and integration tests.
+- **Agent adapters** discover Claude, Codex and Qwen, and can execute reviewed read-only, one-shot commands only with explicit `--trusted`. Output metrics are provider-specific and not universally comparable; full cross-provider benchmarks remain future work.
 - **Smart selection** ranks matching, always-run and unmapped cases; it never silently drops cases with no affects mapping. Its CLI expects a JSON list of `{name, affects, failureCount?, alwaysRun?, lastDurationMs?}`.
-- **History dashboard** writes a local standalone HTML view of a privacy-preserving history index. It uses no CDN or remote API. It does not yet include live updates, a persistent SQLite store or interactive editing.
+- **History dashboard** writes standalone privacy-preserving HTML and optionally imports sanitized history into local SQLite (Node 22.5+). It uses no hosted service; rich time-series comparisons, live updates and interactive editing remain future work.
 
 ### Security
 
 Review input files. Commands accept local files (bounded by size), do not launch model-backed jobs, and never run plugin hooks or settings commands. Canary continues to require trusted scenario configurations for active execution. Dashboard output must be generated at a newly chosen path (no overwrite). CI failures and tool error outputs remain visible as status codes, not silently retried.
 
-### Next steps towards complete product scope
+### Remaining work towards complete product scope
 
-1. Safely test live MCP server conformance with explicit allowlisted transports, request budgets, response limits, protocol-version negotiation and negative-case isolation.
-2. Integrate the CI analyzer with GitHub Actions API job metadata and rerun provenance.
-3. Add scenario dependency-aware minimization and reproducible fixture snapshots.
-4. Extend the dashboard to SQLite-backed local time-series and richer performance analysis.
-5. Implement and validate distinct Claude, Qwen and Codex execution adapters with explicit user permission and telemetry normalization.
+1. Expand bounded live MCP checks beyond read-only discovery and local negative HTTP probes, with explicit session/cancellation/notification coverage and verified MRTR states.
+2. Improve real GitHub CI failure diagnosis beyond existing attempt/job provenance and privacy-safe error categories.
+3. Extend trusted worktree replay into a broader fixture coverage matrix without assuming it is an OS sandbox.
+4. Expand existing SQLite history dashboards with confidence intervals, local time-series and richer performance analysis.
+5. Verify Claude, Qwen and Codex adapter parity and telemetry contracts across provider versions without persisting prompts or raw outputs.
 
 These are not represented as completed until actual integration tests pass.
 
@@ -63,7 +63,7 @@ claude-canary history sqlite-dashboard .canary/results/history.sqlite ./dashboar
 
 **GitHub Actions diagnostics** retrieve metadata across attempts, not raw logs. A public repository can be inspected without credentials; private repositories can use `--token-env GITHUB_TOKEN` with a least-privilege environment variable. Original failed attempts remain in results after successful retries.
 
-**Live MCP** always requires a reviewed contract and explicit `--trusted` acknowledgement. Its normal checks use existing read-only discovery, never `tools/call`. Negative/malformed request tests use a maximum of three requests and can run only against numeric loopback HTTP endpoints. No redirect following or credential forwarding; an OS network sandbox is not supplied.
+**Live MCP** always requires a reviewed contract and explicit `--trusted` acknowledgement. Its normal checks use existing read-only discovery, never `tools/call`. Negative/malformed request tests use a maximum of three requests and can run only against numeric loopback HTTP endpoints. No redirect following or credential forwarding; an OS network sandbox is not supplied. **Unreleased v2.4 hardening:** live discovery is capped at 24 total requests and 30 seconds across all pages/transports; responses to negative probes must match the originating JSON-RPC ID, timeout options are validated before connecting, and URL fragments are rejected.
 
 **Agent execution** requires explicit `--trusted`, a prompt file, and runs Claude in plan mode, Codex in a read-only sandbox, or Qwen in plan mode. Agents may still make provider API calls/costs. Raw prompt/output, credentials and transcripts are not retained in results. Provider-specific metrics are emitted only when recognized. Native read-only modes are not substitutes for running within a real OS sandbox when testing untrusted extensions.
 

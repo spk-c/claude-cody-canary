@@ -52,3 +52,18 @@ describe('MCP 2026-07-28 stateless stdio inspector', () => {
     } finally { await rm(dir,{recursive:true,force:true}); }
   }, 15000);
 });
+
+describe('stdio MCP request budgets',()=>{
+  it('stops read-only discovery once the configured request budget is used',async()=>{
+    const dir=await mkdtemp(path.join(tmpdir(),'canary-mcp-stdio-budget-'));
+    try{
+      const server=path.join(dir,'modern.cjs');
+      await writeFile(server,MODERN_SERVER,'utf8');
+      const contract=McpContractSchema.parse({version:1,name:'stdio-budget',server:{
+        command:process.execPath,args:[server],protocol_version:'2026-07-28',timeout_seconds:5,
+      }});
+      await expect(inspectMcpContract(contract,{cwd:dir,maxRequests:1,maxDurationMs:5000}))
+        .rejects.toThrow('request budget');
+    }finally{await rm(dir,{recursive:true,force:true});}
+  },15_000);
+});

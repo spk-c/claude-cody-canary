@@ -6,6 +6,7 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 - Parse Codex `exec --json` as a bounded event stream, accumulating verified `turn.completed` token usage without double-counting cached/reasoning subsets; reject malformed or failed terminal evidence.
 - Mark provider telemetry unavailable when valid JSON has no supported usage fields, keep prompts and raw outputs out of reports, and separate Codex positional prompts from CLI flags with `--`.
+- Add bounded MCP discovery request and wall-clock budgets across stdio and HTTP transports; harden negative JSON-RPC probes with exact response-ID correlation, URL fragment rejection, and strict timeout validation, and reject authentication or rate-limit HTTP errors as successful negative probes.
 
 ## [2.3.0] - 2026-11-02
 

@@ -129,6 +129,8 @@ export declare function loadMcpContract(contractPath: string): Promise<McpContra
 export declare function inspectMcpContract(contract: McpContract, options?: {
     cwd?: string;
     contractPath?: string;
+    maxRequests?: number;
+    maxDurationMs?: number;
 }): Promise<McpContractSnapshot>;
 export declare function evaluateMcpExpectations(contract: McpContract, snapshot: McpContractSnapshot): McpExpectationResult;
 export declare function compareMcpSnapshots(baseline: McpContractSnapshot, candidate: McpContractSnapshot): McpComparisonResult;

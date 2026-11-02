@@ -3,20 +3,20 @@ import { validateMcpEnvelopes } from './mcp-conformance.js';
 function loopback(url) {
     return url.hostname === '127.0.0.1' || url.hostname === '[::1]';
 }
-async function sendNegativeProbe(url, payload, method, options) {
+async function sendNegativeProbe(url, payload, options) {
     const timeout = options.timeoutMs ?? 4000;
-    if (!Number.isSafeInteger(timeout) || timeout < 100 || timeout > 30_000)
-        throw new Error('Invalid MCP probe timeout.');
     const response = await (options.fetchImpl ?? fetch)(url, {
         method: 'POST',
         redirect: 'error',
         signal: AbortSignal.timeout(timeout),
         headers: { 'content-type': 'application/json', 'accept': 'application/json',
-            'mcp-protocol-version': '2026-07-28', 'mcp-method': method },
+            'mcp-protocol-version': '2026-07-28', 'mcp-method': payload.method },
         body: JSON.stringify(payload),
     });
-    if (!response.ok)
-        return { name: 'negative-envelope', passed: response.status >= 400 && response.status < 500, reason: 'http-' + response.status };
+    if (!response.ok) {
+        await response.body?.cancel().catch(() => undefined);
+        return { name: 'negative-envelope', passed: response.status === 400 || response.status === 422, reason: 'http-' + response.status };
+    }
     const type = response.headers.get('content-type')?.toLowerCase() ?? '';
     if (!type.startsWith('application/json'))
         return { name: 'negative-envelope', passed: false, reason: 'unexpected-response-content-type' };
@@ -57,7 +57,11 @@ async function sendNegativeProbe(url, payload, method, options) {
         const structural = validateMcpEnvelopes([envelope]);
         const error = typeof envelope === 'object' && envelope !== null && !Array.isArray(envelope)
             && Object.prototype.hasOwnProperty.call(envelope, 'error');
-        return { name: 'negative-envelope', passed: structural.valid && error, reason: structural.valid && error ? 'rejected-by-server' : 'invalid-probe-response' };
+        const idMatches = typeof envelope === 'object' && envelope !== null && !Array.isArray(envelope)
+            && Object.prototype.hasOwnProperty.call(envelope, 'id') && envelope.id === payload.id;
+        const passed = structural.valid && error && idMatches;
+        return { name: 'negative-envelope', passed,
+            reason: !idMatches ? 'mismatched-response-id' : passed ? 'rejected-by-server' : 'invalid-probe-response' };
     }
     catch {
         return { name: 'negative-envelope', passed: false, reason: 'response-invalid-json' };
@@ -74,14 +78,18 @@ export async function auditLiveMcp(contract, options) {
     const max = options.maxRequests ?? 3;
     if (!Number.isSafeInteger(max) || max < 1 || max > 3)
         throw new Error('Maximum three negative MCP requests.');
+    const timeout = options.timeoutMs ?? 4000;
+    if (!Number.isSafeInteger(timeout) || timeout < 100 || timeout > 10_000)
+        throw new Error('Invalid MCP probe timeout.');
     if (options.negativeProbes && contract.server.transport !== 'streamable-http')
         throw new Error('Negative probes require Streamable HTTP.');
     const url = contract.server.transport === 'streamable-http' ? new URL(contract.server.url) : null;
-    if (url && (url.username || url.password || (!loopback(url) && url.protocol !== 'https:')))
+    if (url && (url.username || url.password || url.hash || (!loopback(url) && url.protocol !== 'https:')))
         throw new Error('MCP endpoint must be loopback or HTTPS without URL credentials.');
     if (options.negativeProbes && url && !loopback(url))
         throw new Error('Negative MCP probes are restricted to numeric loopback endpoints.');
-    const snapshot = await inspectMcpContract(contract);
+    // Cap discovery across all pagination pages and transports, not only negative probes.
+    const snapshot = await inspectMcpContract(contract, { maxRequests: 24, maxDurationMs: 30_000 });
     const findings = [{ name: 'read-only-discovery', passed: true, reason: 'inspector-complete' }];
     if (snapshot.protocolVersion !== contract.server.protocol_version)
         findings.push({ name: 'version-negotiation', passed: false, reason: 'protocol-version-mismatch' });
@@ -93,7 +101,7 @@ export async function auditLiveMcp(contract, options) {
         ];
         for (const payload of probes.slice(0, max)) {
             try {
-                findings.push(await sendNegativeProbe(url, payload, payload.method, options));
+                findings.push(await sendNegativeProbe(url, payload, options));
             }
             catch {
                 findings.push({ name: 'negative-envelope', passed: false, reason: 'probe-failed-or-timed-out' });
