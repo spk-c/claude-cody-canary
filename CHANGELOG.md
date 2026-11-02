@@ -4,6 +4,13 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Bound metadata and signing-key downloads while streaming and enforce download deadlines.
+- Serialize concurrent Claude Code version cache installs with an expiring lock and cleanup tests.
+- Terminate subprocess trees on timeout/output overflow, including Windows descendants.
+- Save release-watch state through atomic file replacement and align MCP HTTP Accept to JSON support.
+- Pin GitHub Actions to reviewed commit SHAs and add cross-platform regression tests.
+- Update minimatch to 11.0.4 while retaining Node.js 20 compatibility.
+
 - Prevent false npm publish verification failures caused by registry processing delay.
 
 ## [2.2.0] - 2026-11-02
