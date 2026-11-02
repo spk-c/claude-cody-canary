@@ -81,7 +81,7 @@ export async function analyzeGithubRun(owner:string,repo:string,runId:number,opt
           ? analyzeCiLog('runner not assigned; job cancelled before start',1)
           : job.conclusion==='success'?analyzeCiLog('',0)
           : analyzeCiLog('',1);
-        jobs.push({id:job.id,name:job.name.slice(0,150),attempt,status:job.status,
+        jobs.push({id:Number(job.id),name:job.name.slice(0,150),attempt,status:job.status,
           conclusion:typeof job.conclusion==='string'?job.conclusion:null,runnerAssigned,started,diagnosis});
       }
       if(response.jobs.length<100){complete=true;break;}
