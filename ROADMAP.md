@@ -85,3 +85,10 @@ Every future roadmap item should preserve these constraints:
 - **No hidden side effects.** Discovery/reporting stays read-only; mutating fixtures remain confined to Canary-owned temporary state.
 
 The historical release record is maintained in [CHANGELOG.md](CHANGELOG.md).
+
+## Experimental next-platform development (post-v2.2.0)
+
+The development branch introduces bounded offline foundations for CI failure analysis, JSON-RPC envelope checks, delta minimization, statistical pass rates, plugin/security inventory, test prioritization, local history visualization and Claude/Codex/Qwen executable discovery.
+
+This is **not** a claim that the nine larger feature proposals are fully implemented: active MCP fuzzing, AI-assisted root cause assessment, full scenario minimization, live multi-agent test execution and a persistent dashboard are follow-up work. See [experimental platform feature guide](docs/PLATFORM_NEXT.md).
+

@@ -80,8 +80,7 @@ Recent [CI evidence with actual log excerpts](docs/CI_EVIDENCE.md) includes the 
 
 The separate [authenticated Claude Code E2E workflow](.github/workflows/live-claude-e2e.yml) requires an `ANTHROPIC_API_KEY` secret and manual dispatch from `main`. It is not a release gate and is not claimed to have passed merely because offline CI is green.
 
-## Documentation
-
+## Experimental platform development\n\nPost-v2.2.0 source work adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These are **not** part of the already published npm v2.2.0 package. See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Documentation\n
 | Guide | Topics |
 | --- | --- |
 | [Getting started / distribution](docs/DISTRIBUTION.md) | Stable releases, source checkout, checksums, package and Action installation |

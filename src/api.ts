@@ -301,3 +301,23 @@ export type { BundleAttestation, BundleAttestationFile } from './attestation.js'
 export { CanaryExitCode, exitCodeForSuite, exitCodeForWatch } from './exit-codes.js';
 
 export { CANARY_VERSION } from './version.js';
+
+/** Experimental, offline-first platform features (not part of v2.2.0 npm). */
+export { analyzeCiLog, groupCiInsights } from './ci-insights.js';
+export type { CiFailureKind, CiInsight } from './ci-insights.js';
+export { validateMcpEnvelopes, mcpMalformedCorpus } from './mcp-conformance.js';
+export type { McpConformanceResult, McpConformanceFinding } from './mcp-conformance.js';
+export { minimizeFailure } from './minimize.js';
+export type { MinimizationResult } from './minimize.js';
+export { wilsonPassRate, comparePassRates } from './statistical-regressions.js';
+export type { ConfidenceInterval, StatisticalDecision } from './statistical-regressions.js';
+export { auditPluginDiscovery, auditPluginDirectory } from './plugin-audit.js';
+export type { PluginAuditReport, PluginAuditFinding } from './plugin-audit.js';
+export { auditClaudeSettings } from './security-audit.js';
+export type { SecurityAuditResult, SecurityAuditFinding } from './security-audit.js';
+export { discoverAgentAdapters, KNOWN_AGENT_ADAPTERS } from './agent-adapters.js';
+export type { KnownAgent, AgentAdapterStatus } from './agent-adapters.js';
+export { prioritizeScenarios } from './smart-selection.js';
+export type { SmartScenario, SmartSelection } from './smart-selection.js';
+export { renderHistoryDashboard, buildHistoryDashboard } from './history-dashboard.js';
+export type { HistoryDashboardInput, HistoryDashboardRecord } from './history-dashboard.js';
