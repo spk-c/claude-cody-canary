@@ -18,15 +18,16 @@ jobs:
         node: ['20', '22', '24']
         # Keep the original nine combinations, selecting stable supported
         # standard macOS runners where the macos-latest queue stalled.
-        # Keep both Apple Silicon (Node 20) and Intel (Node 22/24),
-        # covering macOS 15 and macOS 26.
+        # Node 20/22 use Apple Silicon and Node 24 uses Intel.
+        # Pin to macOS 15 to avoid macos-latest runner queue cancellations
+        # and a long-running macOS 26 Intel verification on Node 22.
         include:
           - os: macos-latest
             node: '20'
             runner: macos-15
           - os: macos-latest
             node: '22'
-            runner: macos-26-intel
+            runner: macos-15
           - os: macos-latest
             node: '24'
             runner: macos-15-intel
