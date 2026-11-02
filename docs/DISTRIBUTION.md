@@ -9,10 +9,10 @@ in earlier archived documentation are **not** proof of availability here.
 | Surface | Current fork status | Link |
 | --- | --- | --- |
 | Source repository | Available with TypeScript source, tests, examples and build tools | [spk-c/claude-cody-canary](https://github.com/spk-c/claude-cody-canary) |
-| GitHub Release | **v2.1.1 published**; immutable tag and downloadable package | [v2.1.1](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.1) |
-| Composite GitHub Action | Source in repository at an exact tag; test independently before adopting | `spk-c/claude-cody-canary@v2.1.1` |
+| GitHub Release | **v2.2.0 published**; immutable tag and downloadable package | [v2.2.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.2.0) |
+| Composite GitHub Action | Source in repository at an exact tag; test independently before adopting | `spk-c/claude-cody-canary@v2.2.0` |
 | Floating Action channel | **Not published**; do not use `@v2` or `@v1` with this fork | Use the immutable tag |
-| npm registry | Existing [`claude-code-canary`](https://www.npmjs.com/package/claude-code-canary) v2.1.0 belongs to the original `slp-dev1` maintainer; **v2.2.0 from this fork is not published yet** | [npm publishing setup](NPM_PUBLISHING.md) |
+| npm registry | [`claude-code-canary@2.2.0`](https://www.npmjs.com/package/claude-code-canary/v/2.2.0) **published via npm Trusted Publishing** with signed provenance | [npm publishing setup](NPM_PUBLISHING.md) |
 | GitHub Marketplace | No Marketplace listing is claimed for this fork | Use the tagged Action directly |
 
 The fork includes an archived/restored TypeScript v2.1.0 source tree (with later fork fixes). See
@@ -24,7 +24,7 @@ and why this is not a claim of official upstream ownership.
 Download **Source code (zip)** or clone the exact release tag:
 
 ```sh
-git clone --branch v2.1.1 --depth 1 https://github.com/spk-c/claude-cody-canary.git
+git clone --branch v2.2.0 --depth 1 https://github.com/spk-c/claude-cody-canary.git
 cd claude-cody-canary
 npm ci
 npm run check
@@ -34,10 +34,19 @@ node dist/v2-cli.js --help
 The full source archive has `src/`, `test/`, `tests/`, `scripts/`,
 `schemas/`, `dist/` and TypeScript build configuration.
 
-## Package installation without npm publication
+## Install directly from npm
 
-From the [GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.1),
-download both `claude-code-canary-2.1.1.tgz` and `SHA256SUMS`.
+```sh
+npm install --global claude-code-canary@2.2.0
+claude-canary --version
+```
+
+A clean Windows registry consumer verified the package API and three binaries: `claude-canary`, `claude-canary-dag` and `claude-canary-history`.
+
+## Alternative: install from the verified GitHub Release tarball
+
+From the [GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.2.0),
+download both `claude-code-canary-2.2.0.tgz` and `SHA256SUMS`.
 Verify the archive checksum, then install into an isolated project:
 
 ```sh
@@ -45,7 +54,7 @@ sha256sum -c SHA256SUMS
 mkdir canary-consumer
 cd canary-consumer
 npm init -y
-npm install ../claude-code-canary-2.1.1.tgz
+npm install ../claude-code-canary-2.2.0.tgz
 npx --no-install claude-canary --version
 ```
 
@@ -55,7 +64,7 @@ source. Use the GitHub source archive if you need to modify or rebuild it.
 ## GitHub Action at a pinned release
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.1.1
+- uses: spk-c/claude-cody-canary@v2.2.0
   with:
     mode: mcp-check
     mcp-contract: .canary/mcp/server.mcp.yml
@@ -71,7 +80,7 @@ offline MCP contract tests do not.
 
 The repository tests the source on Linux, Windows and macOS with Node
 20/22/24, exercises a fresh installation of an npm-packed tarball, validates
-the actual published v2.1.1 Release asset/checksum, and runs the **tagged**
+the actual published v2.2.0 Release asset/checksum, and runs the **tagged**
 Action against a real local MCP stdio fixture.
 
 These smoke tests prove the checked paths and packaging, **not** broad live
@@ -91,13 +100,8 @@ The recommended GitHub description/topics and the steps needed to apply them
 are documented in [repository metadata](REPOSITORY_METADATA.md). README or
 package changes do not themselves update GitHub About settings.
 
-Removing `private: true` prepares the unchanged package name for a deliberate npm release; it does **not** publish anything or grant the fork ownership of the npm package. The dedicated [trusted-publishing workflow](../.github/workflows/npm-publish.yml) additionally requires a published exact GitHub Release, npm's one-time Trusted Publisher configuration and manual confirmation.
+The existing npm package has now been updated through the manual [Trusted Publishing workflow](../.github/workflows/npm-publish.yml), which checked the exact previously published GitHub tarball. The original npm maintainer `slp-dev1` retains account access, and the new package metadata points to this fork.
 
-The newly developed 2026 MCP stdio/HTTP inspector, retry-safe watch behavior,
-verified suite identities, digest reuse, DAG scripts and history indexing are
-currently merged on `main` **after** v2.1.1. They are not part of the immutable
-published v2.1.1 package or GitHub Action. The v2.2.0 candidate explicitly packs DAG and History as standalone commands;
-its build-time packed-consumer checks passed on Linux, Windows and macOS.
-These commands remain **unreleased** until a new immutable version tag,
-GitHub Release asset and successful published-consumer verification exist.
-See [verified CI logs](CI_EVIDENCE.md) for real historical test output.
+The v2.2.0 release includes the modern MCP inspector, release-watch retries, verified suite identities, safe digest reuse, DAG orchestration and History indexing. These were tested from the public npm registry. The older v2.1.1 artifacts remain immutable and do not include all these enhancements.
+
+See [historical CI evidence and actual publication](CI_EVIDENCE.md).

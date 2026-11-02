@@ -1,9 +1,6 @@
 # Releasing the source-restored fork
 
-The latest published fork release remains **v2.1.1**. The next candidate is
-**v2.2.0**; prepare versioned source, lockfile and committed `dist/` together
-and run the complete CI before publishing. A GitHub Release is
-published only when the release workflow is manually triggered. Model-backed
+The latest published GitHub Release and npm package are **v2.2.0** (2026-11-02). For future releases, update source, lockfile and committed `dist/` together, run CI, and manually publish an immutable release. Model-backed
 Claude E2E and GitHub branch protection are **not** requirements.
 
 ## Release checks
@@ -40,12 +37,12 @@ absence of such a test must not be mistaken for verified model compatibility.
 
 ## npm publication
 
-The name `claude-code-canary` is owned by the original npm maintainer `slp-dev1` and remains unchanged. npm publication has its own manually triggered [Trusted Publishing workflow](../.github/workflows/npm-publish.yml), but **has not happened for v2.2.0**. First publish the immutable GitHub Release, then configure the existing package at npm (owner access, 2FA and OIDC Trusted Publisher), and only then dispatch the npm workflow using `confirmation=PUBLISH_NPM`. See [exact npm setup and troubleshooting](NPM_PUBLISHING.md).
+The name `claude-code-canary` is owned by the original npm maintainer `slp-dev1` and remains unchanged. npm publication has its own manually triggered [Trusted Publishing workflow](../.github/workflows/npm-publish.yml), and **successfully published v2.2.0 on 2026-11-02**. For each future version, publish the immutable GitHub Release first and then dispatch the npm workflow with `confirmation=PUBLISH_NPM`. Never republish an existing npm version. The original 2.2.0 workflow's immediate Registry verification saw processing lag; an independent public registry installation subsequently passed. See [exact npm setup and troubleshooting](NPM_PUBLISHING.md).
 
 ## Future version updates
 
 ```sh
-npm version 2.2.0 --no-git-tag-version
+npm version 2.2.1 --no-git-tag-version  # example for a future patch release
 # Synchronize src/version.ts, regenerate and commit dist/ and package-lock.json.
 npm run build
 npm run check
