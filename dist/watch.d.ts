@@ -6,9 +6,9 @@ declare const WatchStateSchema: z.ZodObject<{
     lastKnownGood: z.ZodString;
     updatedAt: z.ZodString;
     lastResult: z.ZodOptional<z.ZodEnum<{
-        initialized: "initialized";
-        compatible: "compatible";
-        regression: "regression";
+        readonly initialized: "initialized";
+        readonly compatible: "compatible";
+        readonly regression: "regression";
     }>>;
     pendingVersion: z.ZodOptional<z.ZodString>;
 }, z.core.$strict>;

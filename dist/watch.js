@@ -11,7 +11,7 @@ const WatchStateSchema = z.object({
     lastObserved: z.string().regex(/^\d+\.\d+\.\d+$/),
     lastKnownGood: z.string().regex(/^\d+\.\d+\.\d+$/),
     updatedAt: z.string().min(1),
-    lastResult: z.enum(['initialized', 'compatible', 'regression']).optional(),
+    lastResult: z.enum({ initialized: 'initialized', compatible: 'compatible', regression: 'regression' }).optional(),
     /** A regression remains retryable until a candidate passes all scenarios. */
     pendingVersion: z.string().regex(/^\d+\.\d+\.\d+$/).optional(),
 }).strict();
