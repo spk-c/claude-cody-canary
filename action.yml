@@ -8,9 +8,17 @@ branding:
 
 inputs:
   mode:
-    description: "Canary workflow: compare, run, pr-check, baseline-check, mcp-check, plugin-matrix, plugin-suite, suite, or watch."
+    description: "Canary workflow: compare, run, pr-check, baseline-check, mcp-check, plugin-matrix, plugin-suite, suite, watch, or ci-analyze."
     required: false
     default: compare
+  ci-run-id:
+    description: Existing GitHub Actions run number to inspect in ci-analyze mode (read-only).
+    required: false
+    default: ""
+  ci-repository:
+    description: Repository owner/name for ci-analyze. Defaults to the current repository.
+    required: false
+    default: ""
   scenario:
     description: Scenario path. Defaults to .canary/basic.canary.yml, or .canary/plugin-smoke.canary.yml for plugin-matrix.
     required: false
@@ -171,6 +179,9 @@ runs:
       working-directory: ${{ github.workspace }}
       env:
         CANARY_MODE: ${{ inputs.mode }}
+        CANARY_CI_RUN_ID: ${{ inputs.ci-run-id }}
+        CANARY_CI_REPOSITORY: ${{ inputs.ci-repository != '' && inputs.ci-repository || github.repository }}
+        GITHUB_TOKEN: ${{ inputs.mode == 'ci-analyze' && github.token || '' }}
         CANARY_SCENARIO: ${{ inputs.scenario }}
         CANARY_FROM: ${{ inputs.from }}
         CANARY_TO: ${{ inputs.to }}

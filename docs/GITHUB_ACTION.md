@@ -4,6 +4,8 @@ Claude Canary exposes one composite Action for deterministic release comparisons
 
 Supported modes:
 
+- `ci-analyze` (read-only historic GitHub Actions run diagnostics; no model API key)
+
 - `compare`
 - `run`
 - `pr-check`
@@ -315,3 +317,30 @@ For a workflow named `.github/workflows/claude-canary.yml`:
 The root `action.yml` contains Marketplace metadata, branding, inputs and outputs. Publishing the listing is performed from a tagged GitHub Release by enabling **Publish this Action to the GitHub Marketplace** when GitHub requires release-specific confirmation.
 
 See [`RELEASING.md`](RELEASING.md) for the major-aware release/Marketplace contract.
+
+## CI failure diagnostics without provider credentials
+
+On a trusted repository workflow, analyze a past GitHub Actions run including
+earlier attempts after targeted reruns:
+
+```yaml
+permissions:
+  contents: read
+  actions: read
+steps:
+  - uses: actions/checkout@v7
+  - uses: spk-c/claude-cody-canary@v2.2.0
+    with:
+      mode: ci-analyze
+      ci-run-id: '41522087038'
+      ci-repository: spk-c/claude-cody-canary
+```
+
+**Distribution note:** `ci-analyze` is part of source development and is **not present in
+the immutable published v2.2.0 Action**. Use a reviewed source commit until the
+next official release is available and update this example to the new tag then.
+
+The Action passes a scoped `GITHUB_TOKEN` only to `ci-analyze`. It uses
+`GET` endpoints to inspect attempt/job metadata and does not fetch private
+raw logs, create issues or rerun workflows automatically. A completed
+analysis is a successful command even when the inspected workflow was red.

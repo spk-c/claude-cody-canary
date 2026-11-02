@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import process from 'node:process';
 
-const MODES = new Set(['compare', 'run', 'pr-check', 'baseline-check', 'mcp-check', 'plugin-matrix', 'plugin-suite', 'suite', 'watch']);
+const MODES = new Set(['compare', 'run', 'pr-check', 'baseline-check', 'mcp-check', 'plugin-matrix', 'plugin-suite', 'suite', 'watch', 'ci-analyze']);
 const SUMMARY_LIMIT = 60_000;
 
 function env(name, fallback = '') {
@@ -57,6 +57,12 @@ function suiteSelectionArgs(config) {
 
 export function buildCliArgs(config) {
   switch (config.mode) {
+    case 'ci-analyze': {
+      if (!/^[1-9][0-9]{0,15}$/.test(config.ciRunId || '')) throw new Error('ci-run-id must be a positive GitHub Actions run id.');
+      if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(config.ciRepository || '')) throw new Error('ci-repository must be owner/repo.');
+      const [owner, repo] = config.ciRepository.split('/');
+      return ['ci', 'run', owner, repo, config.ciRunId, '--token-env', 'GITHUB_TOKEN'];
+    }
     case 'compare': {
       if (!config.from) throw new Error('from is required when mode=compare.');
       return ['compare', config.scenario || '.canary/basic.canary.yml', '--from', config.from, '--to', config.to || 'latest'];
@@ -189,6 +195,8 @@ export function readConfig() {
   if (!MODES.has(mode)) throw new Error(`mode must be one of: ${[...MODES].join(', ')}.`);
   return {
     mode,
+    ciRunId: env('CANARY_CI_RUN_ID'),
+    ciRepository: env('CANARY_CI_REPOSITORY'),
     scenario: env('CANARY_SCENARIO'),
     from: env('CANARY_FROM'),
     to: env('CANARY_TO'),

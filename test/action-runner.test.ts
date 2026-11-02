@@ -7,6 +7,14 @@ import { describe, expect, it } from 'vitest';
 import { buildCliArgs, escapeHtmlText, hydratePullRequestRefs, parseBoolean, parsePositiveInteger, parseVersions } from '../scripts/action-runner.mjs';
 
 describe('marketplace action runner', () => {
+  it('supports read-only historic CI analysis without exposing token in command arguments', () => {
+    expect(buildCliArgs({mode:'ci-analyze',ciRunId:'41522087038',ciRepository:'spk-c/claude-cody-canary'}))
+      .toEqual(['ci','run','spk-c','claude-cody-canary','41522087038','--token-env','GITHUB_TOKEN']);
+    expect(()=>buildCliArgs({mode:'ci-analyze',ciRunId:'0',ciRepository:'spk-c/claude-cody-canary'}))
+      .toThrow(/ci-run-id/);
+    expect(()=>buildCliArgs({mode:'ci-analyze',ciRunId:'42',ciRepository:'https://evil.example'}))
+      .toThrow(/ci-repository/);
+  });
   it('builds backwards-compatible compare arguments', () => {
     expect(buildCliArgs({
       mode: 'compare', scenario: '', from: '2.1.100', to: '', plugin: '', suite: '', versions: [], last: 10, platform: '', maxRuns: 200, failOnIncompatible: true,
