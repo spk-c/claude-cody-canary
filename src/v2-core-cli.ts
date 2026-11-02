@@ -140,8 +140,22 @@ async function suiteCommand(): Promise<void> {
     }
     return;
   }
+  const priorityFile = valueAfter('--priority-history');
+  let priorityHistory: Record<string,{failureCount:number;lastDurationMs?:number}> | undefined;
+  if (priorityFile) {
+    const loaded = await readJson<unknown>(priorityFile);
+    if (!loaded || typeof loaded !== 'object' || Array.isArray(loaded)) throw new Error('Invalid priority history file.');
+    for (const value of Object.values(loaded)) {
+      if (!value || typeof value !== 'object' || Array.isArray(value) ||
+        !Number.isSafeInteger((value as Record<string,unknown>).failureCount) ||
+        Number((value as Record<string,unknown>).failureCount)<0)
+        throw new Error('Invalid priority history entry.');
+    }
+    priorityHistory = loaded as Record<string,{failureCount:number;lastDurationMs?:number}>;
+  }
   const result = await runSuite(suitePath, {
     ...options,
+    priorityHistory,
     concurrency: positiveInt(valueAfter('--concurrency'), '--concurrency'),
     maxRuns: positiveInt(valueAfter('--max-runs'), '--max-runs'),
     failFast: hasFlag('--fail-fast'),
