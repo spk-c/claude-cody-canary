@@ -5,8 +5,15 @@ export async function withFileLock(lockPath, operation, { waitMs = 180_000, stal
         throw new Error('Invalid file lock timing.');
     const deadline = Date.now() + waitMs;
     for (;;) {
+        let handle;
         try {
-            const handle = await open(lockPath, 'wx', 0o600);
+            handle = await open(lockPath, 'wx', 0o600);
+        }
+        catch (error) {
+            if (error.code !== 'EEXIST')
+                throw error;
+        }
+        if (handle) {
             try {
                 await handle.writeFile(`${process.pid}\n`);
                 return await operation();
@@ -15,10 +22,6 @@ export async function withFileLock(lockPath, operation, { waitMs = 180_000, stal
                 await handle.close();
                 await rm(lockPath, { force: true });
             }
-        }
-        catch (error) {
-            if (error.code !== 'EEXIST')
-                throw error;
         }
         try {
             const info = await stat(lockPath);
