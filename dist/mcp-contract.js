@@ -195,7 +195,7 @@ class StdioMcpClient {
                 message = JSON.parse(line);
             }
             catch {
-                this.failAll(new Error(`MCP server wrote non-JSON data to stdout: ${line.slice(0, 200)}`));
+                this.failAll(new Error('MCP server wrote non-JSON data to stdout (content suppressed).'));
                 this.child.kill('SIGKILL');
                 return;
             }

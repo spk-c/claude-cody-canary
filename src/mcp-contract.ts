@@ -5,7 +5,7 @@ import path from 'node:path';
 import YAML from 'yaml';
 import { z } from 'zod';
 import { CANARY_VERSION } from './version.js';
-import { classifyMcpResult, parseMcpSseResponse, mcpHeaderValue } from './mcp-wire.js';
+import { classifyMcpResult, parseMcpSseResponse } from './mcp-wire.js';
 
 const nameExpectations = z.object({
   require: z.array(z.string().min(1)).default([]),
@@ -294,7 +294,7 @@ class StdioMcpClient {
       try {
         message = JSON.parse(line);
       } catch {
-        this.failAll(new Error(`MCP server wrote non-JSON data to stdout: ${line.slice(0, 200)}`));
+        this.failAll(new Error('MCP server wrote non-JSON data to stdout (content suppressed).'));
         this.child.kill('SIGKILL');
         return;
       }
