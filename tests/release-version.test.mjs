@@ -64,6 +64,8 @@ test('npm release workflow requires trusted OIDC, manual approval and verified G
     'npm run check', 'npm run check:dist', 'npm audit --audit-level=high',
     'sha256sum --check SHA256SUMS', 'cmp "$RUNNER_TEMP/github-release-pack/',
     'package-consumer-smoke.mjs', 'npm publish --provenance --access public',
+    'for attempt in $(seq 1 24)', 'npm view "claude-code-canary@${VERSION}" version --prefer-online',
+    'for attempt in $(seq 1 8)',
   ]) {
     assert.ok(source.includes(requirement), 'Missing npm publish safety contract: ' + requirement);
   }

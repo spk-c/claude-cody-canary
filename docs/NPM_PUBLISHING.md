@@ -45,6 +45,7 @@ claude-canary --version
 - **npm 404 / OIDC exchange refused:** Confirm `spk-c`, `claude-cody-canary`, `npm-publish.yml`, any optional environment and the **Allow npm publish** setting exactly match. Check whether the Trusted Publisher has expired.
 - **GitHub Release missing / checksum mismatch:** Publish the expected immutable release first; do not bypass artifact verification or point a tag at different code.
 - **Version already exists:** npm versions are immutable; publish a higher unused version instead.
+- **Publish returned success but immediate npm view returned 404:** npm may take several minutes to process and propagate a newly published package. **Do not republish the same version**. Check the GitHub log for `+ claude-code-canary@X.Y.Z` and signed provenance; then retry a fresh npm registry read and clean installation. The verification workflow on `main` now waits for bounded registry propagation.
 - **No model-backed tests:** Successful source/consumer CI does not imply that the optional paid Anthropic API E2E has run.
 
 See [npm Trusted Publishing documentation](https://docs.npmjs.com/trusted-publishers/) and [release instructions](RELEASING.md).

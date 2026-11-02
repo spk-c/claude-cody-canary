@@ -109,9 +109,30 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(node -p "require('./package.json').version")"
-          test "$(npm view "claude-code-canary@${VERSION}" version)" = "$VERSION"
+          # npm may accept a publish before public registry metadata is available.
+          # Never republish the same immutable version to repair that delay.
+          # Use fresh metadata and bounded retries to account for propagation.
+          FOUND=false
+          for attempt in $(seq 1 24); do
+            if [ "$(npm view "claude-code-canary@${VERSION}" version --prefer-online 2>/dev/null || true)" = "$VERSION" ]; then
+              FOUND=true
+              break
+            fi
+            echo "npm registry is still processing ${VERSION} (attempt ${attempt}/24)"
+            sleep 15
+          done
+          test "$FOUND" = true || { echo "Published npm version did not become visible within retry window"; exit 1; }
           mkdir -p "$RUNNER_TEMP/npm-registry-consumer"
-          npm install --prefix "$RUNNER_TEMP/npm-registry-consumer" \
-            "claude-code-canary@${VERSION}" --ignore-scripts --no-audit --no-fund
+          INSTALLED=false
+          for attempt in $(seq 1 8); do
+            if npm install --prefix "$RUNNER_TEMP/npm-registry-consumer" \
+              "claude-code-canary@${VERSION}" --prefer-online --ignore-scripts --no-audit --no-fund; then
+              INSTALLED=true
+              break
+            fi
+            echo "npm tarball not yet retrievable (attempt ${attempt}/8)"
+            sleep 15
+          done
+          test "$INSTALLED" = true || { echo "Published npm tarball could not be installed"; exit 1; }
           cp tests/fixtures/package-consumer-smoke.mjs "$RUNNER_TEMP/npm-registry-consumer/smoke.mjs"
           node "$RUNNER_TEMP/npm-registry-consumer/smoke.mjs"
