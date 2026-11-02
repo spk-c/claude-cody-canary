@@ -55,6 +55,18 @@ jobs:
           npm run check:dist
           npm audit --audit-level=high
           npm pack --dry-run --ignore-scripts
+      - name: Verify exact packed tarball in a clean consumer before publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-smoke" "$RUNNER_TEMP/release-consumer"
+          VERSION="$(node -p "require('./package.json').version")"
+          npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP/release-smoke"
+          npm install --prefix "$RUNNER_TEMP/release-consumer" \
+            "$RUNNER_TEMP/release-smoke/claude-code-canary-${VERSION}.tgz" \
+            --ignore-scripts --no-audit --no-fund
+          cp tests/fixtures/package-consumer-smoke.mjs "$RUNNER_TEMP/release-consumer/smoke.mjs"
+          node "$RUNNER_TEMP/release-consumer/smoke.mjs"
       - name: Build release archive and checksums
         shell: bash
         run: |
