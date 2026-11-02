@@ -9,10 +9,10 @@ export declare const AgentTeamScenarioSchema: z.ZodObject<{
         model: z.ZodOptional<z.ZodString>;
         permission_mode: z.ZodOptional<z.ZodEnum<{
             default: "default";
+            dontAsk: "dontAsk";
             acceptEdits: "acceptEdits";
             plan: "plan";
             auto: "auto";
-            dontAsk: "dontAsk";
             bypassPermissions: "bypassPermissions";
         }>>;
         timeout_seconds: z.ZodDefault<z.ZodNumber>;

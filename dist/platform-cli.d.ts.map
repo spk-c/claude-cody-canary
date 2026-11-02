@@ -1,0 +1,1 @@
+{"version":3,"file":"platform-cli.d.ts","sourceRoot":"","sources":["../src/platform-cli.ts"],"names":[],"mappings":"AA4BA,eAAO,MAAM,iBAAiB,oQAGpB,CAAC;AACX,wBAAgB,iBAAiB,CAAC,IAAI,EAAC,MAAM,EAAE,GAAE,OAAO,CAEvD;AACD,wBAAsB,kBAAkB,CAAC,IAAI,EAAC,MAAM,EAAE,GAAE,OAAO,CAAC,IAAI,CAAC,CA0BpE"}

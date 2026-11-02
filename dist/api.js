@@ -46,4 +46,14 @@ export { createSafeMcpFixture } from './mcp-fixtures.js';
 export { createBundleAttestation, verifyBundleAttestation } from './attestation.js';
 export { CanaryExitCode, exitCodeForSuite, exitCodeForWatch } from './exit-codes.js';
 export { CANARY_VERSION } from './version.js';
+/** Experimental, offline-first platform features (not part of v2.2.0 npm). */
+export { analyzeCiLog, groupCiInsights } from './ci-insights.js';
+export { validateMcpEnvelopes, mcpMalformedCorpus } from './mcp-conformance.js';
+export { minimizeFailure } from './minimize.js';
+export { wilsonPassRate, comparePassRates } from './statistical-regressions.js';
+export { auditPluginDiscovery, auditPluginDirectory } from './plugin-audit.js';
+export { auditClaudeSettings } from './security-audit.js';
+export { discoverAgentAdapters, KNOWN_AGENT_ADAPTERS } from './agent-adapters.js';
+export { prioritizeScenarios } from './smart-selection.js';
+export { renderHistoryDashboard, buildHistoryDashboard } from './history-dashboard.js';
 //# sourceMappingURL=api.js.map

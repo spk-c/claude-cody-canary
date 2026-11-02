@@ -86,6 +86,12 @@ else if (packSubcommand === 'catalog') {
         await runPackCatalogCli(argv.slice(2));
     });
 }
+else if ((await import('./platform-cli.js')).isPlatformCommand(argv)) {
+    await failClosed(async () => {
+        const { runPlatformCommand } = await import('./platform-cli.js');
+        await runPlatformCommand(argv);
+    }, 2);
+}
 else {
     await import('./v2-core-cli.js');
     const rootHelp = argv.length === 0 ||
@@ -105,7 +111,16 @@ else {
             '  registry export <file>      Export a filtered independent registry\n' +
             '  registry import <files...>  Merge independent registries with conflict checks\n' +
             '  pack metadata <dir>         Generate community scenario-pack discovery metadata\n' +
-            '  pack catalog <files...>     Build a deterministic scenario-pack catalog');
+            '  pack catalog <files...>     Build a deterministic scenario-pack catalog\n' +
+            '  ci analyze <logfile>         Classify CI failures without exporting raw logs\n' +
+            '  mcp conformance <json>      Offline JSON-RPC envelope conformance audit\n' +
+            '  minimize <json> <marker>    Reduce a reproducible string-list failure\n' +
+            '  stats <bp> <br> <cp> <cr>   Compare pass rates with confidence intervals\n' +
+            '  plugin scan <directory>    Read-only plugin compatibility inventory\n' +
+            '  security audit <json>      Static Claude permissions and hook review\n' +
+            '  agent doctor               Discover Claude/Codex/Qwen executable adapters\n' +
+            '  smart select <json>         Prioritize affected and historically failing tests\n' +
+            '  dashboard <index> <html>    Generate an offline interactive history view');
     }
 }
 export {};
