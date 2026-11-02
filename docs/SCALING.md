@@ -1,8 +1,8 @@
 # Scaling suites, sharding, incremental selection and caches
 
 Canary's current `suite` command already offers selection/sharding and
-verified-identity **local** cached results. This fork adds a strict multi-job
-shard merge tool without changing the published v2.1.1 CLI or result schema.
+verified-identity **local** cached results. The development branch adds a strict multi-job shard merge tool without changing
+historical v2.1.1 CLI or result schemas.
 
 ## Incremental suite planning (no model calls)
 
@@ -82,8 +82,9 @@ tokens, touch GitHub or certify model accuracy. Run representative local
 benchmarks before deciding on more complex DAG orchestration or long-term
 history indexing.
 
-A general bounded DAG scheduler and persistent history index remain
-separate roadmap items; they are **not** claimed to exist in this release.
+The bounded local DAG scheduler and compact history index **are implemented on `main`**
+and packaged in the v2.2.0 candidate. They are **not** available in the immutable
+published v2.1.1 package. See [orchestration and history](ORCHESTRATION_HISTORY.md).
 
 ### Per-suite digest reuse (after v2.1.1)
 
@@ -100,7 +101,8 @@ share hashes between machines, runs, different repositories or credentials.
 ## Distribution status
 
 All core scale updates described here are merged on `main` after the
-published v2.1.1 tag. The optional DAG orchestrator and compact history
-index are repository scripts; see [orchestration and history](ORCHESTRATION_HISTORY.md).
-Neither these scripts nor the new merged source enhancements are claimed
-as shipped in the immutable v2.1.1 release.
+published v2.1.1 tag. The optional DAG and History utilities now have separate binary entries in
+the **v2.2.0 candidate tarball**, verified in clean-consumer CI. See
+[orchestration and history](ORCHESTRATION_HISTORY.md).
+Neither these utilities nor other post-v2.1.1 source improvements are claimed
+as shipped in the immutable published v2.1.1 release.

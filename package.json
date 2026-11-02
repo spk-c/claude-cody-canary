@@ -1,7 +1,7 @@
 {
   "name": "claude-code-canary",
   "version": "2.2.0",
-  "description": "Source-buildable Claude Code Canary fork with security regression coverage",
+  "description": "Regression and compatibility testing for Claude Code, plugins and MCP servers with reproducible CI evidence",
   "author": "SLP-DEV1",
   "type": "module",
   "main": "./dist/api.js",
@@ -63,7 +63,13 @@
     "agent-evals",
     "ai-agent-testing",
     "ai-coding",
-    "cli"
+    "cli",
+    "model-context-protocol",
+    "mcp-testing",
+    "release-monitoring",
+    "plugin-testing",
+    "security-testing",
+    "reproducible-testing"
   ],
   "repository": {
     "type": "git",

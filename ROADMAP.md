@@ -6,9 +6,9 @@ Claude Code Canary exists to answer one question reliably:
 
 ## Status
 
-The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
+The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. **Implementation does not mean that all enhancements have been published in this fork's latest immutable v2.1.1 release.** The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
 
-| Milestone | Status | Shipped outcome |
+| Milestone | Implementation status | Implemented capabilities |
 | --- | --- | --- |
 | **v1.3** | ✅ Complete | Release watch, scenario suites, deterministic sharding, selective execution, run budgets, safe result reuse, flakiness analysis and failure fingerprints. |
 | **v1.4** | ✅ Complete | Static HTML, JUnit, SARIF, GitHub summaries, local trends and explicit baseline proposals. |

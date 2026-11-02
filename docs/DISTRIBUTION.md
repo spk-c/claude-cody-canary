@@ -87,13 +87,15 @@ with a separate, documented stability policy and successful consumer tests.
 
 The original MIT copyright and credit belong to SLP-DEV1. This fork is
 maintained at `spk-c/claude-cody-canary`; preserve upstream attribution.
-Its current GitHub repository description/topics may be configured separately
-from the README; the source code cannot prove UI-only Marketplace or
-discovery settings.
+The recommended GitHub description/topics and the steps needed to apply them
+are documented in [repository metadata](REPOSITORY_METADATA.md). README or
+package changes do not themselves update GitHub About settings.
 
 The newly developed 2026 MCP stdio/HTTP inspector, retry-safe watch behavior,
 verified suite identities, digest reuse, DAG scripts and history indexing are
 currently merged on `main` **after** v2.1.1. They are not part of the immutable
-published v2.1.1 package or GitHub Action. The v2.2.0 candidate now explicitly packs DAG and history scripts as standalone
-commands. This remains **unreleased** until a new immutable version tag,
+published v2.1.1 package or GitHub Action. The v2.2.0 candidate explicitly packs DAG and History as standalone commands;
+its build-time packed-consumer checks passed on Linux, Windows and macOS.
+These commands remain **unreleased** until a new immutable version tag,
 GitHub Release asset and successful published-consumer verification exist.
+See [verified CI logs](CI_EVIDENCE.md) for real historical test output.
