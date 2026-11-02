@@ -16,10 +16,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         node: ['20', '22', '24']
-    # Keep all nine OS/Node matrix entries. macos-latest (Apple Silicon)
-    # repeatedly cancelled only the Node 24 job before assigning a runner;
-    # macos-15-intel is a supported standard hosted runner (no larger runner).
-    runs-on: ${{ matrix.os == 'macos-latest' && matrix.node == '24' && 'macos-15-intel' || matrix.os }}
+        # Keep the original nine combinations, selecting stable supported
+        # standard macOS runners where the macos-latest queue stalled.
+        include:
+          - os: macos-latest
+            node: '20'
+            runner: macos-15
+          - os: macos-latest
+            node: '24'
+            runner: macos-15-intel
+    runs-on: ${{ matrix.runner || matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
