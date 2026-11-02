@@ -6,7 +6,7 @@
  */
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { resolve, relative, isAbsolute, dirname } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { pathToFileURL, fileURLToPath } from 'node:url';
 import { spawnCapture } from '../dist/process.js';
 import YAML from 'yaml';
 
@@ -98,8 +98,10 @@ export async function runDagCli(args){
   const output=args[2]?resolve(cwd,args[2]):resolve(cwd,'.canary/results/dag-summary.json');
   const outRel=relative(cwd,output);
   if(outRel.startsWith('..')||isAbsolute(outRel))throw new Error('DAG output must be inside current working directory.');
+  // Resolve the package CLI relative to this installed script, not the consumer's workspace.
+  const canaryCli=fileURLToPath(new URL('../dist/v2-cli.js', import.meta.url));
   const result=await runDag(nodes,async node=>{
-    const run=await spawnCapture(process.execPath,[resolve(cwd,'dist/v2-cli.js'),...taskArgs(node)],{
+    const run=await spawnCapture(process.execPath,[canaryCli,...taskArgs(node)],{
       cwd,timeoutMs:10*60*1000,maxOutputChars:1024*1024,
     });
     return {passed:run.code===0&&!run.timedOut&&!run.outputTruncated,exitCode:run.code,

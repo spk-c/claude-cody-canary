@@ -4,12 +4,15 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
-### After v2.1.1 (merged, not released)
+### 2.2.0 candidate (prepared; no GitHub Release yet)
 
 - Retry failed release-watch candidates and classify incomplete infrastructure results.
 - Inspect modern MCP 2026-07-28 over stateless stdio and bounded read-only Streamable HTTP.
 - Speed up suite discovery, enforce shared shard run identities and safely memoize file hashes.
-- Add offline dependency-DAG orchestration, result-history index and release attestation support.
+- Package offline dependency-DAG orchestration and privacy-safe result-history indexing as installable standalone CLI commands.
+- Fix the DAG runner to resolve its CLI relative to the installed package instead of the consumer working directory.
+- Exercise both packaged utilities in Linux, Windows and macOS clean-consumer tests.
+- Add release archive build-provenance attestation support, with the v4 action update.
 - Preserve backward-compatible CLI schemas and optional paid E2E.
 
 

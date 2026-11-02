@@ -67,8 +67,9 @@ The next work should deepen usability and ecosystem adoption rather than re-crea
 - ✅ GitHub release build-provenance attestation in the **future release workflow** (existing v2.1.1 assets are unchanged).
 
 These changes require a **new versioned release** before they become part of
-an immutable downloadable Canary CLI/Action. The optional DAG and history
-scripts are repository-only until separately packaged.
+an immutable downloadable Canary CLI/Action. The DAG and history scripts have been added to the **unreleased v2.2.0
+candidate** as separate executable npm package entries; verify the built
+consumer archive before declaring them released.
 
 ### Future major ideas
 

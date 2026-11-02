@@ -94,6 +94,6 @@ discovery settings.
 The newly developed 2026 MCP stdio/HTTP inspector, retry-safe watch behavior,
 verified suite identities, digest reuse, DAG scripts and history indexing are
 currently merged on `main` **after** v2.1.1. They are not part of the immutable
-published v2.1.1 package or GitHub Action. A future new tag will package the
-core TypeScript changes; repository-only scripts stay source-only unless their
-distribution is explicitly updated.
+published v2.1.1 package or GitHub Action. The v2.2.0 candidate now explicitly packs DAG and history scripts as standalone
+commands. This remains **unreleased** until a new immutable version tag,
+GitHub Release asset and successful published-consumer verification exist.

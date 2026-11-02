@@ -1,9 +1,8 @@
 # Releasing the source-restored fork
 
-The latest published fork release is **v2.1.1**. The `main` branch has
-unreleased enhancements and still reports package version 2.1.1.
-Before another release, bump source, lockfile and committed `dist/` to a new
-version and run the complete CI. A GitHub Release is
+The latest published fork release remains **v2.1.1**. The next candidate is
+**v2.2.0**; prepare versioned source, lockfile and committed `dist/` together
+and run the complete CI before publishing. A GitHub Release is
 published only when the release workflow is manually triggered. Model-backed
 Claude E2E and GitHub branch protection are **not** requirements.
 
@@ -40,7 +39,7 @@ absence of such a test must not be mistaken for verified model compatibility.
 
 ## npm publication
 
-`package.json` retains `"private": true`. The release workflow creates a
+`package.json` retains `"private": true`. See [npm ownership and trusted publishing](NPM_PUBLISHING.md). The release workflow creates a
 GitHub Release, **not** an npm registry publication. A separately selected
 package name, ownership verification and Trusted Publishing are needed before
 adding npm publication.
@@ -48,7 +47,8 @@ adding npm publication.
 ## Future version updates
 
 ```sh
-npm run release:version -- 2.2.0
+npm version 2.2.0 --no-git-tag-version
+# Synchronize src/version.ts, regenerate and commit dist/ and package-lock.json.
 npm run build
 npm run check
 npm run check:dist

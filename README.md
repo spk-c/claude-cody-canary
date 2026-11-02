@@ -15,8 +15,8 @@ production credentials or on unrestricted hosts.
 ## Published release and installation
 
 The latest published stable fork build is [v2.1.1 on GitHub](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.1.1).
-The `main` branch also contains **unreleased** follow-up improvements (watch retry
-reliability, MCP 2026 inspection, suite scale, and offline orchestration).
+The `main` branch contains the **unreleased v2.2.0 candidate** (watch retries,
+MCP 2026 inspection, scale improvements and packaged DAG/history utilities).
 Do not treat those as shipped in the immutable v2.1.1 tag.
 For **full TypeScript source**, use the GitHub tag's Source code archive.
 The separately attached `claude-code-canary-2.1.1.tgz` is an installable
@@ -25,6 +25,22 @@ and a floating `@v2` GitHub Action tag are **not** enabled for this fork.
 
 Use the exact `spk-c/claude-cody-canary@v2.1.1` Action tag.
 See [distribution and consumer verification](docs/DISTRIBUTION.md).
+
+## New v2.2.0 candidate utilities
+
+The next installable archive includes `claude-canary-dag` and `claude-canary-history`.
+These are **not** available in the published v2.1.1 package. Once v2.2.0
+has been released, install its archive, then run:
+
+```sh
+npx --no-install claude-canary-dag .canary/pipeline.yml 2
+npx --no-install claude-canary-history .canary/results
+```
+
+The DAG manifest is versioned YAML with a bounded, allow-listed set of Canary
+suite/MCP tasks, and the history index omits prompts, transcripts and secrets.
+The DAG command resolves its own CLI inside the installed package while
+keeping scenario files relative to the invoking workspace.
 
 ## Develop and test
 

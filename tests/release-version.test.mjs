@@ -8,8 +8,8 @@ import { normalizeReleaseTag } from '../scripts/normalize-release-version.mjs';
 const packageVersion = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const tag = `v${packageVersion}`;
 
-for (const value of ['2.1.1', 'v2.1.1']) {
-  test(`accepts ${value} and normalizes to v2.1.1`, () => {
+for (const value of [packageVersion, `v${packageVersion}`]) {
+  test(`accepts ${value} and normalizes to ${tag}`, () => {
     assert.equal(normalizeReleaseTag(value, packageVersion), tag);
   });
 }
@@ -32,7 +32,7 @@ test('rejects invalid or prerelease package metadata', () => {
 });
 test('CLI emits a safe GitHub Actions output in either accepted form', () => {
   const entry = fileURLToPath(new URL('../scripts/normalize-release-version.mjs', import.meta.url));
-  for (const input of ['2.1.1', 'v2.1.1']) {
+  for (const input of [packageVersion, `v${packageVersion}`]) {
     const result = spawnSync(process.execPath, [entry, input], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, `tag=${tag}\n`);

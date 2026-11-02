@@ -1,6 +1,6 @@
 {
   "name": "claude-code-canary",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "description": "Source-buildable Claude Code Canary fork with security regression coverage",
   "author": "SLP-DEV1",
   "type": "module",
@@ -13,11 +13,15 @@
     }
   },
   "bin": {
-    "claude-canary": "dist/v2-cli.js"
+    "claude-canary": "dist/v2-cli.js",
+    "claude-canary-dag": "scripts/dag-orchestrator.mjs",
+    "claude-canary-history": "scripts/build-history-index.mjs"
   },
   "files": [
     "dist",
     "schemas",
+    "scripts/dag-orchestrator.mjs",
+    "scripts/build-history-index.mjs",
     "README.md",
     "LICENSE"
   ],
