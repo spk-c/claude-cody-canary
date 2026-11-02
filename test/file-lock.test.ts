@@ -30,6 +30,20 @@ describe('exclusive install lock', () => {
       expect(await withFileLock(lock, async () => 'recovered', { staleMs: 10, retryMs: 5 })).toBe('recovered');
     } finally { await rm(root, { recursive: true, force: true }); }
   });
+  it('propagates operation EEXIST failures without silently retrying work', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'canary-operation-error-'));
+    const lock = path.join(root, 'install.lock');
+    let attempts = 0;
+    try {
+      await expect(withFileLock(lock, async () => {
+        attempts++;
+        const error = new Error('Application file already exists') as NodeJS.ErrnoException;
+        error.code = 'EEXIST';
+        throw error;
+      }, { retryMs: 5, waitMs: 100 })).rejects.toThrow('Application file already exists');
+      expect(attempts).toBe(1);
+    } finally { await rm(root, { recursive: true, force: true }); }
+  });
   it('times out rather than overriding an active lock', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'canary-active-lock-'));
     const lock = path.join(root, 'install.lock');

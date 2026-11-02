@@ -17,12 +17,12 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
       - name: Test plugin across recent Claude Code releases
-        uses: SLP-DEV1/claude-code-canary@v1
+        uses: spk-c/claude-cody-canary@e118e3705c919d29ea16b3878888484db53dd14d # v2.2.0
         with:
           mode: plugin-suite
           plugin: ./my-plugin

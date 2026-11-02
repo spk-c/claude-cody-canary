@@ -57,7 +57,7 @@ describe('scheduled GitHub Actions watch example', () => {
 
     expect(baseline?.if).toContain("hashFiles('.canary/watch-state.json') == ''");
 
-    expect(canary?.uses).toBe('SLP-DEV1/claude-code-canary@v2');
+    expect(canary?.uses).toBe('spk-c/claude-cody-canary@e118e3705c919d29ea16b3878888484db53dd14d');
     expect(canary?.['continue-on-error']).toBe(true);
     expect(canary?.with).toMatchObject({
       mode: 'watch',
@@ -87,7 +87,7 @@ describe('scheduled GitHub Actions watch example', () => {
     const steps = (await loadWorkflow()).jobs?.watch?.steps ?? [];
     const thirdParty = steps
       .map((step) => step.uses)
-      .filter((value): value is string => Boolean(value) && !value!.startsWith('SLP-DEV1/'));
+      .filter((value): value is string => Boolean(value) && !value!.startsWith('spk-c/'));
 
     expect(thirdParty.length).toBeGreaterThanOrEqual(3);
     expect(thirdParty.every((value) => /@[0-9a-f]{40}$/.test(value))).toBe(true);

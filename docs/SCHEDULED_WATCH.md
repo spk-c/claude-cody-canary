@@ -80,7 +80,7 @@ with:
 
 ## Security notes
 
-The example gives the workflow only `contents: read`. The upstream checkout/cache actions are pinned to immutable commit SHAs. The Canary Action uses the documented `v2` major channel so consumers receive compatible v2 fixes; repositories that require full supply-chain pinning can replace that tag with a reviewed immutable Canary commit SHA.
+The example gives the workflow only `contents: read`. The upstream checkout/cache actions are pinned to immutable commit SHAs. The Canary Action is pinned to the immutable v2.2.0 commit of `spk-c/claude-cody-canary`. Upgrade to a new reviewed immutable release commit when adopting later Canary releases.
 
 Do not persist API keys, prompts, transcripts or arbitrary environment dumps in the watch-state cache. Canary's state file contains only the release cursor and status metadata; normal portable result/evidence privacy rules still apply.
 
