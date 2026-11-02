@@ -1,6 +1,6 @@
 # Optional offline DAG orchestration and history indexing
 
-**Release status:** the source and package metadata on `main` (version 2.2.0) include both utilities as standalone package commands, `claude-canary-dag` and `claude-canary-history`. The **last published stable v2.1.1 tarball does not include them**. A new immutable v2.2.0 release is required before those package commands can be used by release consumers.
+**Release status:** the published [v2.2.0 GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.2.0) and [npm v2.2.0](https://www.npmjs.com/package/claude-code-canary/v/2.2.0) ship both standalone commands, `claude-canary-dag` and `claude-canary-history`. They are absent from the immutable v2.1.1 release.
 
 The scripts can be run from a source checkout after `npm ci` and `npm run build`. No hosted Canary service or provider key is required for local offline MCP contracts.
 
@@ -22,7 +22,7 @@ nodes:
 
 ```sh
 npm run dag:run -- .canary/dag.yml 2
-# After a v2.2.0 tarball has been released and installed:
+# From an installed v2.2.0 package:
 # npx --no-install claude-canary-dag .canary/dag.yml 2
 ```
 
@@ -42,7 +42,7 @@ multi-machine scheduling are not implemented in this script.
 
 ```sh
 npm run history:index -- .canary/results
-# After a v2.2.0 tarball has been released and installed:
+# From an installed v2.2.0 package:
 # npx --no-install claude-canary-history .canary/results
 ```
 
