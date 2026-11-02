@@ -1,6 +1,7 @@
 import { readFile, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as openpgp from 'openpgp';
+import { fetchBoundedBytes } from './http-download.js';
 
 const SIGNING_KEY_URL = 'https://downloads.claude.ai/keys/claude-code.asc';
 const RELEASE_BASE = 'https://downloads.claude.ai/claude-code-releases';
@@ -31,9 +32,7 @@ export function manifestSignatureRequired(version: string): boolean {
 }
 
 async function fetchBytes(url: string): Promise<Uint8Array> {
-  const response = await fetch(url, { redirect: 'follow' });
-  if (!response.ok) throw new Error(`HTTP ${response.status} while fetching ${url}`);
-  return new Uint8Array(await response.arrayBuffer());
+  return fetchBoundedBytes(url, 512 * 1024);
 }
 
 async function fetchText(url: string): Promise<string> {

@@ -6,6 +6,8 @@ import path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { verifyReleaseManifest, type ManifestVerification } from './release-signature.js';
+import { fetchBoundedBytes } from './http-download.js';
+import { withFileLock } from './file-lock.js';
 
 const RELEASE_BASE = 'https://downloads.claude.ai/claude-code-releases';
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
@@ -126,15 +128,7 @@ function validateResolvedVersion(value: string, source: string): string {
 }
 
 async function fetchBytes(url: string, maxBytes = MAX_METADATA_BYTES): Promise<Uint8Array> {
-  const response = await fetch(url, { redirect: 'follow' });
-  if (!response.ok) throw new Error(`HTTP ${response.status} while fetching ${url}`);
-  const declaredLength = Number(response.headers.get('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-    throw new Error(`Response too large while fetching ${url}: ${declaredLength} bytes exceeds ${maxBytes}.`);
-  }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength > maxBytes) throw new Error(`Response too large while fetching ${url}: exceeds ${maxBytes} bytes.`);
-  return bytes;
+  return fetchBoundedBytes(url, maxBytes);
 }
 
 async function fetchText(url: string): Promise<string> {
@@ -195,7 +189,8 @@ async function hashFile(file: string): Promise<{ checksum: string; bytes: number
 }
 
 async function downloadBinary(url: string, destination: string, expectedSize?: number): Promise<{ checksum: string; bytes: number }> {
-  const response = await fetch(url, { redirect: 'follow' });
+  const signal = AbortSignal.timeout(10 * 60_000);
+  const response = await fetch(url, { redirect: 'follow', signal });
   if (!response.ok || !response.body) throw new Error(`HTTP ${response.status} while downloading ${url}`);
 
   const maxBytes = expectedSize ?? MAX_BINARY_BYTES;
@@ -222,6 +217,7 @@ async function downloadBinary(url: string, destination: string, expectedSize?: n
     Readable.fromWeb(response.body as never),
     meter,
     createWriteStream(destination, { mode: 0o755 }),
+    { signal },
   );
   return { checksum: hash.digest('hex'), bytes };
 }
@@ -279,6 +275,7 @@ export async function installClaudeVersion(
   await mkdir(versionDir, { recursive: true });
   await writeFile(manifestPath, manifestBytes);
 
+  return withFileLock(`${executablePath}.lock`, async () => {
   if (await fileExists(executablePath)) {
     const current = await hashFile(executablePath);
     const sizeMatches = expected.size === undefined || expected.size === current.bytes;
@@ -337,6 +334,7 @@ export async function installClaudeVersion(
     await rm(temporary, { force: true });
     throw error;
   }
+  });
 }
 
 export async function cachedClaudePath(
