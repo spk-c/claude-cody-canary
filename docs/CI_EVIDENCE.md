@@ -33,7 +33,15 @@ The consumer test installed a new tarball from that exact source commit into a f
 ## What these checks do not establish
 
 - They do **not** prove that the manual, authenticated `core` or `full` Claude model E2E suites passed.
-- They do **not** establish that version 2.2.0 is already published on GitHub Releases or the npm registry.
+- These historical **pre-release** CI checks alone did not establish publication. Later publication evidence appears below.
 - They do **not** assert comprehensive security or compatibility for untrusted scenario code.
 
 See [live E2E](LIVE_E2E.md), [distribution](DISTRIBUTION.md) and [security](SECURITY_MODEL.md).
+
+## v2.2.0 GitHub and npm publication (2026-11-02)
+
+- [GitHub Release workflow 41494983662](https://github.com/spk-c/claude-cody-canary/actions/runs/41494983662) completed successfully, including source audit, checksum, tarball consumer verification and build provenance. [Immutable release v2.2.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.2.0).
+- [npm Trusted Publishing workflow 41495335373](https://github.com/spk-c/claude-cody-canary/actions/runs/41495335373) successfully ran `npm publish --provenance`, returning `+ claude-code-canary@2.2.0` and a [signed transparency-log entry](https://search.sigstore.dev/?logIndex=3645881951). **The overall workflow concluded failure** because its immediate `npm view` saw npm's temporary processing delay (404); this must not be described as an all-green run.
+- After publication processing, a public npm Registry API check confirmed version `2.2.0` and the maintained fork repository URL. A separate clean Windows installation from the public npm registry verified CLI, API, DAG, History and privacy-safe history indexing. The npm `latest` dist-tag was `2.2.0`.
+
+[PR #35](https://github.com/spk-c/claude-cody-canary/pull/35) corrects the post-publish retry behavior for future releases, without altering the immutable v2.2.0 tag.
