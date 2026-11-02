@@ -6,7 +6,7 @@ Claude Code Canary exists to answer one question reliably:
 
 ## Status
 
-The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. **Implementation does not mean that all enhancements have been published in this fork's latest immutable v2.1.1 release.** The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
+The roadmap from v1.3 through v2.2 is implemented in the v2 compatibility platform. **Implementation does not mean that all enhancements have been published in the historical immutable v2.1.1 release; the latest published version is v2.2.0.** The v2.0.0 release unified release watching, scenario suites, compatibility evidence, CI reporting, trust regression testing and programmatic compatibility queries behind one local-first toolchain; v2.1 and v2.2 deepen developer experience and ecosystem publishing on top of that contract.
 
 | Milestone | Implementation status | Implemented capabilities |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ The next work should deepen usability and ecosystem adoption rather than re-crea
 - ✅ locally generated evidence-backed SVG badges with machine-readable manifest/evidence bindings and publishable Markdown;
 - ✅ conflict-aware registry import/export with filtered subsets, full-manifest identity, collision-safe deduplication and explicit contradictory-result handling.
 
-### Post-v2.1.1 scale and reliability work (merged on `main`, not released)
+### Post-v2.1.1 scale and reliability work (published in v2.2.0)
 
 - ✅ shard-result merging with collision/coverage checks and shared execution identities;
 - ✅ per-suite executable/configuration hash memoization with live file metadata invalidation;
@@ -64,12 +64,9 @@ The next work should deepen usability and ecosystem adoption rather than re-crea
 - ✅ compact repository-local privacy-preserving historical summary index;
 - ✅ reliable scheduled release-watch retries and infrastructure classification;
 - ✅ explicit modern MCP 2026-07-28 stdio and limited read-only Streamable HTTP inspection;
-- ✅ GitHub release build-provenance attestation in the **future release workflow** (existing v2.1.1 assets are unchanged).
+- ✅ GitHub release build-provenance attestation in the **v2.2.0 release workflow** (existing v2.1.1 assets are unchanged).
 
-These changes require a **new versioned release** before they become part of
-an immutable downloadable Canary CLI/Action. The DAG and history scripts have been added to the **unreleased v2.2.0
-candidate** as separate executable npm package entries; verify the built
-consumer archive before declaring them released.
+These enhancements are now part of the immutable **v2.2.0 GitHub Release and npm artifacts**. DAG and History ship as separate CLI commands and were verified by a fresh public npm registry consumer installation. Future improvements require a new version.
 
 ### Future major ideas
 
