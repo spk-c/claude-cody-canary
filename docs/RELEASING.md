@@ -11,6 +11,7 @@ Claude E2E and GitHub branch protection are **not** requirements.
 - `npm ci`, `npm run check`, `npm run check:dist`, and the high-severity
   `npm audit` must succeed.
 - All CI checks and CodeQL are expected to be green before publishing.
+- The release job itself installs the exact candidate tarball in a disposable consumer and runs the CLI/API, DAG and History checks before tagging.
 - The release version must match `package.json`.
 - Review `CHANGELOG.md` and retain MIT license and attribution.
 - Release CI generates a GitHub artifact build-provenance attestation for the `.tgz`.
