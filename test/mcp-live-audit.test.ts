@@ -9,7 +9,7 @@ describe('bounded trusted MCP conformance',()=>{
       let body='';for await(const chunk of req)body+=chunk.toString();
       const j=JSON.parse(body) as {id:number;jsonrpc:string;method:string};
       calls++;
-      const valid=j.jsonrpc==='2.0'&&['server/discover','tools/list'].includes(j.method);
+      const valid=j.jsonrpc==='2.0'&&['server/discover','tools/list'].includes(j.method)&&!Object.prototype.hasOwnProperty.call(j,'result');
       if(!valid)invalid++;
       const result=j.method==='server/discover'?{resultType:'complete',supportedVersions:['2026-07-28'],capabilities:{tools:{}}}:
         {resultType:'complete',tools:[{name:'safe',inputSchema:{type:'object'}}]};
