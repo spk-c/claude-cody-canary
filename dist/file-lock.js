@@ -1,9 +1,45 @@
 import { lstat, open, rm, stat } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+/**
+ * Windows can deny an exclusive create while another handle is in the
+ * delete-pending state. lstat can simultaneously report ENOENT or EPERM.
+ * Retry only if a separate exclusive probe proves the parent is writable.
+ * A permanently ACL-denied lock path is still rejected after a short cap.
+ */
+async function windowsTransientContention(file) {
+    if (process.platform !== 'win32')
+        return false;
+    try {
+        const info = await lstat(file);
+        return info.isFile() && !info.isSymbolicLink();
+    }
+    catch (error) {
+        const code = error.code;
+        if (code !== 'ENOENT' && code !== 'EPERM' && code !== 'EACCES')
+            return false;
+        const probe = path.join(path.dirname(file), `.canary-probe-${process.pid}-${randomUUID()}`);
+        let handle;
+        try {
+            handle = await open(probe, 'wx', 0o600);
+            return true;
+        }
+        catch {
+            return false;
+        }
+        finally {
+            await handle?.close();
+            if (handle)
+                await rm(probe, { force: true, maxRetries: 5, retryDelay: 25 });
+        }
+    }
+}
 /** Exclusive lock across Node processes; only expired abandoned locks may be reclaimed. */
 export async function withFileLock(lockPath, operation, { waitMs = 180_000, staleMs = 15 * 60_000, retryMs = 100 } = {}) {
     if (waitMs < 1 || staleMs < 1 || retryMs < 1)
         throw new Error('Invalid file lock timing.');
     const deadline = Date.now() + waitMs;
+    let consecutiveTransientErrors = 0;
     for (;;) {
         let handle;
         try {
@@ -12,26 +48,14 @@ export async function withFileLock(lockPath, operation, { waitMs = 180_000, stal
         catch (error) {
             const code = error.code;
             if (code !== 'EEXIST') {
-                // Windows may surface a sharing violation as EPERM/EACCES during
-                // exclusive-file creation. Treat it as contention ONLY when an
-                // existing regular lock was independently observed. Other permission
-                // failures must propagate.
-                if (process.platform !== 'win32' || (code !== 'EPERM' && code !== 'EACCES'))
+                if ((code !== 'EPERM' && code !== 'EACCES') || !await windowsTransientContention(lockPath))
                     throw error;
-                try {
-                    const existing = await lstat(lockPath);
-                    if (!existing.isFile() || existing.isSymbolicLink())
-                        throw error;
-                }
-                catch (inspectionError) {
-                    if (inspectionError === error)
-                        throw error;
-                    if (inspectionError.code !== 'ENOENT')
-                        throw error;
-                    // The contender released the lock between open() and lstat().
-                    // Do not pretend that arbitrary permission failures are safe.
+                // Do not indefinitely reinterpret a persistent ACL issue as contention.
+                if (++consecutiveTransientErrors > 30)
                     throw error;
-                }
+            }
+            else {
+                consecutiveTransientErrors = 0;
             }
         }
         if (handle) {
@@ -41,7 +65,7 @@ export async function withFileLock(lockPath, operation, { waitMs = 180_000, stal
             }
             finally {
                 await handle.close();
-                await rm(lockPath, { force: true });
+                await rm(lockPath, { force: true, maxRetries: 5, retryDelay: 25 });
             }
         }
         try {
