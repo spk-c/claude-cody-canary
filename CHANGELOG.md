@@ -4,6 +4,15 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Extend the CI Analyzer with real read-only GitHub Actions run/attempt/job retrieval; retain original cancelled/failed jobs across successful reruns.
+- Introduce an explicitly approved live MCP conformance audit with bounded read-only discovery and loopback-only negative probes.
+- Add read-only one-shot Claude, Codex and Qwen runner adapters with provider-specific flags and privacy-preserving normalized evidence.
+- Add dependency-aware scenario delta debugging with reproducible Git worktree replay, strict budgets and opt-in shell execution.
+- Support optional local SQLite history import, retention, daily trends and HTML dashboard export on Node.js 22.5+.
+- Integrate historical risk prioritization into suite execution without dropping tests or changing strict sharded execution identities.
+- Harden Windows file locks for verified transient sharing violations and add a concurrent stress regression test.
+- Publish CLI and TypeScript API entry points and document trust and unsupported protocol boundaries.
+
 - Bound metadata and signing-key downloads while streaming and enforce download deadlines.
 - Serialize concurrent Claude Code version cache installs with an expiring lock and cleanup tests.
 - Terminate subprocess trees on timeout/output overflow, including Windows descendants.
