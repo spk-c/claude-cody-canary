@@ -1,4 +1,6 @@
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { spawnCapture } from '../src/process.js';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
@@ -61,6 +63,43 @@ describe('exclusive install lock', () => {
       }
     } finally { await rm(root, {recursive:true,force:true}); }
   }, 30_000);
+  it('serializes independent Node processes without overlapping critical sections', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'canary-multiprocess-lock-'));
+    const lock = path.join(root, 'shared.lock');
+    const trace = path.join(root, 'trace.log');
+    const worker = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'file-lock-worker.ts');
+    try {
+      const results = await Promise.all(Array.from({ length: 4 }, () =>
+        spawnCapture(process.execPath, ['--import', 'tsx', worker, lock, trace], {
+          cwd: process.cwd(), timeoutMs: 45_000,
+        })
+      ));
+      for (const result of results) {
+        expect(result.timedOut).toBe(false);
+        expect(result.code, result.stderr.slice(-500)).toBe(0);
+      }
+      const events = (await readFile(trace, 'utf8')).trim().split(/\r?\n/);
+      expect(events).toHaveLength(48);
+      let active = 0;
+      for (const line of events) {
+        const [event, pid, iteration] = line.split(' ');
+        expect(pid).toMatch(/^\d+$/);
+        expect(iteration).toMatch(/^[0-5]$/);
+        if (event === 'enter') {
+          expect(active).toBe(0);
+          active++;
+        } else {
+          expect(event).toBe('leave');
+          expect(active).toBe(1);
+          active--;
+        }
+      }
+      expect(active).toBe(0);
+      await expect(readFile(lock)).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }, 60_000);
   it('times out rather than overriding an active lock', async () => {
     const root = await mkdtemp(path.join(tmpdir(), 'canary-active-lock-'));
     const lock = path.join(root, 'install.lock');

@@ -77,7 +77,16 @@ export async function withFileLock<T>(
         continue;
       }
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+      const code = (error as NodeJS.ErrnoException).code;
+      // On Windows a concurrent close/delete can temporarily deny stat()
+      // even when the exclusive create correctly identified contention.
+      // Only retry after confirming the directory remains writable, and
+      // preserve genuine permission failures instead of masking them.
+      if (code !== 'ENOENT') {
+        if ((code !== 'EPERM' && code !== 'EACCES') ||
+            !await windowsTransientContention(lockPath) ||
+            ++consecutiveTransientErrors > 30) throw error;
+      }
     }
     if (Date.now() >= deadline) throw new Error(`Timed out waiting for install lock ${lockPath}`);
     await new Promise((resolve) => setTimeout(resolve, Math.min(retryMs, deadline - Date.now())));
