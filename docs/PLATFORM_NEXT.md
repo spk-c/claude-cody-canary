@@ -75,3 +75,13 @@ claude-canary history sqlite-dashboard .canary/results/history.sqlite ./dashboar
 **Persistent history** uses Node.js built-in SQLite on **Node 22.5+**; Canary's other CLI commands still support Node.js 20. It stores only sanitized run/suite/watch summaries from the existing history index with idempotent imports and bounded retention. It refuses a symlink database. No hosted service or model subscription is required.
 
 Full automated model-backed production performance benchmarking, multi-provider token normalization, remote MCP protocol-fuzz coverage and a full generic multi-round-trip MCP client are out of scope here; do not claim those as complete conformance certifications.
+
+### Runner reliability and ARM coverage
+
+Normal release-gating source CI tests Node 20/22/24 on Linux, Windows, and the
+supported standard **macOS 15 Intel** runner. GitHub Actions repeatedly left
+Apple Silicon runners unassigned long enough to prevent other successful
+checks from completing. Rather than permanently remove ARM testing, a separate
+`macOS Apple Silicon compatibility` workflow runs macOS 15 ARM on Node 20/22
+on a weekly schedule and supports manual dispatch. This **does not count as
+an ARM release gate**, and ARM failures must be investigated rather than hidden.
