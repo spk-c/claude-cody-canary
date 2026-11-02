@@ -322,7 +322,7 @@ class HttpMcpClient {
             redirect: 'manual',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json, text/event-stream',
+                'Accept': 'application/json',
                 'MCP-Protocol-Version': '2026-07-28',
                 'Mcp-Method': method,
             },

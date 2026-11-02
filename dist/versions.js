@@ -6,6 +6,8 @@ import path from 'node:path';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { verifyReleaseManifest } from './release-signature.js';
+import { fetchBoundedBytes } from './http-download.js';
+import { withFileLock } from './file-lock.js';
 const RELEASE_BASE = 'https://downloads.claude.ai/claude-code-releases';
 const EXACT_VERSION = /^\d+\.\d+\.\d+$/;
 const MAX_METADATA_BYTES = 8 * 1024 * 1024;
@@ -76,17 +78,7 @@ function validateResolvedVersion(value, source) {
     return version;
 }
 async function fetchBytes(url, maxBytes = MAX_METADATA_BYTES) {
-    const response = await fetch(url, { redirect: 'follow' });
-    if (!response.ok)
-        throw new Error(`HTTP ${response.status} while fetching ${url}`);
-    const declaredLength = Number(response.headers.get('content-length'));
-    if (Number.isFinite(declaredLength) && declaredLength > maxBytes) {
-        throw new Error(`Response too large while fetching ${url}: ${declaredLength} bytes exceeds ${maxBytes}.`);
-    }
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength > maxBytes)
-        throw new Error(`Response too large while fetching ${url}: exceeds ${maxBytes} bytes.`);
-    return bytes;
+    return fetchBoundedBytes(url, maxBytes);
 }
 async function fetchText(url) {
     return new TextDecoder().decode(await fetchBytes(url));
@@ -148,7 +140,8 @@ async function hashFile(file) {
     return { checksum: hash.digest('hex'), bytes };
 }
 async function downloadBinary(url, destination, expectedSize) {
-    const response = await fetch(url, { redirect: 'follow' });
+    const signal = AbortSignal.timeout(10 * 60_000);
+    const response = await fetch(url, { redirect: 'follow', signal });
     if (!response.ok || !response.body)
         throw new Error(`HTTP ${response.status} while downloading ${url}`);
     const maxBytes = expectedSize ?? MAX_BINARY_BYTES;
@@ -169,7 +162,7 @@ async function downloadBinary(url, destination, expectedSize) {
             callback(null, chunk);
         },
     });
-    await pipeline(Readable.fromWeb(response.body), meter, createWriteStream(destination, { mode: 0o755 }));
+    await pipeline(Readable.fromWeb(response.body), meter, createWriteStream(destination, { mode: 0o755 }), { signal });
     return { checksum: hash.digest('hex'), bytes };
 }
 async function writeInstallMetadata(metadataPath, version, platform, checksum, bytes, verification) {
@@ -207,12 +200,47 @@ export async function installClaudeVersion(spec, options = {}) {
         : 'Release predates signed manifests; using checksum-only verification.');
     await mkdir(versionDir, { recursive: true });
     await writeFile(manifestPath, manifestBytes);
-    if (await fileExists(executablePath)) {
-        const current = await hashFile(executablePath);
-        const sizeMatches = expected.size === undefined || expected.size === current.bytes;
-        if (current.checksum === expected.checksum && sizeMatches) {
-            await writeInstallMetadata(metadataPath, version, platform, current.checksum, current.bytes, verification);
-            status(options, `Using cached Claude Code ${version} (${platform}).`);
+    return withFileLock(`${executablePath}.lock`, async () => {
+        if (await fileExists(executablePath)) {
+            const current = await hashFile(executablePath);
+            const sizeMatches = expected.size === undefined || expected.size === current.bytes;
+            if (current.checksum === expected.checksum && sizeMatches) {
+                await writeInstallMetadata(metadataPath, version, platform, current.checksum, current.bytes, verification);
+                status(options, `Using cached Claude Code ${version} (${platform}).`);
+                return {
+                    requested: spec,
+                    version,
+                    platform,
+                    executablePath,
+                    manifestPath,
+                    metadataPath,
+                    checksum: current.checksum,
+                    bytes: current.bytes,
+                    cached: true,
+                    manifestVerification: verification.mode,
+                    signingFingerprint: verification.fingerprint,
+                };
+            }
+            status(options, `Cached Claude Code ${version} failed integrity check; replacing it.`);
+            await rm(executablePath, { force: true });
+        }
+        const binary = executableName(platform);
+        const url = `${RELEASE_BASE}/${version}/${platform}/${binary}`;
+        const temporary = `${executablePath}.tmp-${process.pid}-${Date.now()}`;
+        status(options, `Downloading Claude Code ${version} (${platform})...`);
+        try {
+            const downloaded = await downloadBinary(url, temporary, expected.size);
+            if (downloaded.checksum !== expected.checksum) {
+                throw new Error(`SHA256 mismatch for Claude Code ${version} ${platform}: expected ${expected.checksum}, got ${downloaded.checksum}`);
+            }
+            if (expected.size !== undefined && downloaded.bytes !== expected.size) {
+                throw new Error(`Size mismatch for Claude Code ${version} ${platform}: expected ${expected.size}, got ${downloaded.bytes}`);
+            }
+            if (process.platform !== 'win32')
+                await chmod(temporary, 0o755);
+            await rename(temporary, executablePath);
+            await writeInstallMetadata(metadataPath, version, platform, downloaded.checksum, downloaded.bytes, verification);
+            status(options, `Cached Claude Code ${version} at ${executablePath}`);
             return {
                 requested: spec,
                 version,
@@ -220,51 +248,18 @@ export async function installClaudeVersion(spec, options = {}) {
                 executablePath,
                 manifestPath,
                 metadataPath,
-                checksum: current.checksum,
-                bytes: current.bytes,
-                cached: true,
+                checksum: downloaded.checksum,
+                bytes: downloaded.bytes,
+                cached: false,
                 manifestVerification: verification.mode,
                 signingFingerprint: verification.fingerprint,
             };
         }
-        status(options, `Cached Claude Code ${version} failed integrity check; replacing it.`);
-        await rm(executablePath, { force: true });
-    }
-    const binary = executableName(platform);
-    const url = `${RELEASE_BASE}/${version}/${platform}/${binary}`;
-    const temporary = `${executablePath}.tmp-${process.pid}-${Date.now()}`;
-    status(options, `Downloading Claude Code ${version} (${platform})...`);
-    try {
-        const downloaded = await downloadBinary(url, temporary, expected.size);
-        if (downloaded.checksum !== expected.checksum) {
-            throw new Error(`SHA256 mismatch for Claude Code ${version} ${platform}: expected ${expected.checksum}, got ${downloaded.checksum}`);
+        catch (error) {
+            await rm(temporary, { force: true });
+            throw error;
         }
-        if (expected.size !== undefined && downloaded.bytes !== expected.size) {
-            throw new Error(`Size mismatch for Claude Code ${version} ${platform}: expected ${expected.size}, got ${downloaded.bytes}`);
-        }
-        if (process.platform !== 'win32')
-            await chmod(temporary, 0o755);
-        await rename(temporary, executablePath);
-        await writeInstallMetadata(metadataPath, version, platform, downloaded.checksum, downloaded.bytes, verification);
-        status(options, `Cached Claude Code ${version} at ${executablePath}`);
-        return {
-            requested: spec,
-            version,
-            platform,
-            executablePath,
-            manifestPath,
-            metadataPath,
-            checksum: downloaded.checksum,
-            bytes: downloaded.bytes,
-            cached: false,
-            manifestVerification: verification.mode,
-            signingFingerprint: verification.fingerprint,
-        };
-    }
-    catch (error) {
-        await rm(temporary, { force: true });
-        throw error;
-    }
+    });
 }
 export async function cachedClaudePath(version, options = {}) {
     if (!isExactVersion(version))
