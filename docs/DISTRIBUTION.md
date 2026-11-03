@@ -9,11 +9,11 @@ in earlier archived documentation are **not** proof of availability here.
 | Surface | Current fork status | Link |
 | --- | --- | --- |
 | Source repository | Available with TypeScript source, tests, examples and build tools | [spk-c/claude-cody-canary](https://github.com/spk-c/claude-cody-canary) |
-| GitHub Release | **v2.4.0 release target**; immutable tag, checksums and source provenance verified by release workflow | [v2.4.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0) |
+| GitHub Release | **v2.4.0 published**; immutable tag, checksums and source provenance verified by release workflow | [v2.4.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0) |
 | Composite GitHub Action | Source in repository at an exact tag; test independently before adopting | `spk-c/claude-cody-canary@v2.4.0` |
 | Floating Action channel | **Not published**; do not use `@v2` or `@v1` with this fork | Use the immutable tag |
-| npm registry | [`claude-code-canary@2.3.0`](https://www.npmjs.com/package/claude-code-canary/v/2.3.0) **prepared for npm Trusted Publishing** with signed provenance | [npm publishing setup](NPM_PUBLISHING.md) |
-| GitHub Marketplace | No Marketplace listing is claimed for this fork | Use the tagged Action directly |
+| npm registry | [`claude-code-canary@2.4.0`](https://www.npmjs.com/package/claude-code-canary/v/2.4.0) **published via npm Trusted Publishing (OIDC)** with signed provenance | [npm publishing setup](NPM_PUBLISHING.md) |
+| GitHub Marketplace | Requires separate owner confirmation in the Release editor; public listing not independently verified | Use the tagged Action directly until the listing is confirmed |
 
 The fork includes an archived/restored TypeScript v2.1.0 source tree (with later fork fixes). See
 [source provenance](SOURCE_RESTORATION.md) for limitations, attribution
@@ -37,7 +37,7 @@ The full source archive has `src/`, `test/`, `tests/`, `scripts/`,
 ## Install directly from npm
 
 ```sh
-npm install --global claude-code-canary@2.3.0
+npm install --global claude-code-canary@2.4.0
 claude-canary --version
 ```
 
@@ -45,8 +45,8 @@ A clean Windows registry consumer verified the package API and three binaries: `
 
 ## Alternative: install from the verified GitHub Release tarball
 
-From the [GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.3.0),
-download both `claude-code-canary-2.3.0.tgz` and `SHA256SUMS`.
+From the [GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0),
+download both `claude-code-canary-2.4.0.tgz` and `SHA256SUMS`.
 Verify the archive checksum, then install into an isolated project:
 
 ```sh
@@ -54,7 +54,7 @@ sha256sum -c SHA256SUMS
 mkdir canary-consumer
 cd canary-consumer
 npm init -y
-npm install ../claude-code-canary-2.3.0.tgz
+npm install ../claude-code-canary-2.4.0.tgz
 npx --no-install claude-canary --version
 ```
 

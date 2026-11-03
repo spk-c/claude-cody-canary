@@ -27,7 +27,7 @@ Detect breaking changes between Claude Code releases, run repeatable scenarios i
 
 ## Start here: run an offline MCP check
 
-The **current release target is [v2.4.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0)** (published only after the verified release workflow succeeds). Node.js **20+** and Git are required.
+The **current stable release is [v2.4.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0)**, published on GitHub and npm. Node.js **20+** and Git are required.
 
 ~~~sh
 git clone --branch v2.4.0 --depth 1 https://github.com/spk-c/claude-cody-canary.git
@@ -42,7 +42,7 @@ The last command uses this repository's included *local* MCP stdio fixture: no A
 
 To check your own server, create and review a [contract file](docs/MCP_CONTRACTS.md) and then run `node dist/v2-cli.js mcp-check path/to/server.mcp.yml`. MCP contracts can launch commands; only run servers and files you trust.
 
-**Prefer an installable archive?** Download the release's `.tgz` and `SHA256SUMS`, verify the checksum, and install the tarball in a new project following [distribution and installation](docs/DISTRIBUTION.md). **npm installation after the verified v2.4.0 release:** `npm install --global claude-code-canary@2.4.0`. The existing npm Trusted Publishing workflow verifies release assets and uses OIDC provenance. The original package name and MIT attribution are preserved. See [npm publishing](docs/NPM_PUBLISHING.md).
+**Prefer an installable archive?** Download the release's `.tgz` and `SHA256SUMS`, verify the checksum, and install the tarball in a new project following [distribution and installation](docs/DISTRIBUTION.md). **Install from npm:** `npm install --global claude-code-canary@2.4.0`. The existing npm Trusted Publishing workflow verifies release assets and uses OIDC provenance. The original package name and MIT attribution are preserved. See [npm publishing](docs/NPM_PUBLISHING.md).
 
 ## GitHub Actions: offline MCP contract gate
 
@@ -60,7 +60,7 @@ This runs a real local contract check and needs no paid API. The full [GitHub Ac
 
 ## Release v2.4.0: safer MCP, CI and multi-agent testing
 
-The [v2.4.0 GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0) and [npm v2.4.0 package](https://www.npmjs.com/package/claude-code-canary/v/2.4.0) are the intended outputs of the verified release workflows. GitHub package publication, npm registry availability and Marketplace listing are separate states and must be confirmed independently. Changes include strict MCP JSON-RPC and MRTR validation, scenario-pinned CI replay, longitudinal comparisons and reviewer-signed, preview-first agent tests.
+The [v2.4.0 GitHub Release](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0) and [npm v2.4.0 package](https://www.npmjs.com/package/claude-code-canary/v/2.4.0) are published and verified by independent consumer tests. GitHub Marketplace registration is a separate, owner-approved step; do not infer Marketplace availability from a GitHub Release. Changes include strict MCP JSON-RPC and MRTR validation, scenario-pinned CI replay, longitudinal comparisons and reviewer-signed, preview-first agent tests.
 
 For development from `main`:
 
@@ -82,13 +82,16 @@ The separate [authenticated Claude Code E2E workflow](.github/workflows/live-cla
 
 ## New platform capabilities in v2.3.0
 
-Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These shipped in **npm v2.3.0**. Subsequent roadmap features on the development branch are not yet published; see the [platform guide](docs/PLATFORM_NEXT.md). See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Verified-answer E2E (v2.4.0, explicitly opt-in)
+Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These shipped in **npm v2.3.0**. The expanded MCP, CI and agent tooling now ships in v2.4.0; see the [platform guide](docs/PLATFORM_NEXT.md) for scope, trust boundaries and examples.
 
-The current source branch adds a bounded E2E harness for Claude, Codex and Qwen. By default, `claude-canary agent e2e manifest.json` is an **offline preview only**; it never launches a model. The optional execution mode requires both `--trusted` and `--allow-provider-costs`. Independently supplied expected-answer SHA-256 hashes are checked against provider output, and only sanitized observations are reported.
+## Verified-answer E2E (v2.4.0, explicitly opt-in)
 
-For chargeable runs the development CLI now also requires an externally reviewed **Ed25519-signed fixture** with a separately pinned reviewer public key and explicit billing-controls acknowledgement. The optional `Reviewed Agent E2E` GitHub Actions workflow is manual-only and defaults to a no-cost preview; configure its environment reviewers and secrets before considering live execution. Provider-reported spending thresholds are **not hard billing caps**: a request may exceed a limit before cost telemetry arrives. Canary stops subsequent requests when cost is missing or the reported threshold is exceeded. Review provider billing controls and the [full manifest and safety guide](docs/PLATFORM_NEXT.md) before enabling execution. These improvements are included in the v2.4.0 release candidate; authenticated model-backed test results remain unverified.
+Version 2.4.0 includes a bounded E2E harness for Claude, Codex and Qwen. By default, `claude-canary agent e2e manifest.json` is an **offline preview only**; it never launches a model. The optional execution mode requires both `--trusted` and `--allow-provider-costs`. Independently supplied expected-answer SHA-256 hashes are checked against provider output, and only sanitized observations are reported.
 
-## Documentation\n
+For chargeable runs the v2.4.0 CLI also requires an externally reviewed **Ed25519-signed fixture** with a separately pinned reviewer public key and explicit billing-controls acknowledgement. The optional `Reviewed Agent E2E` GitHub Actions workflow is manual-only and defaults to a no-cost preview; configure its environment reviewers and secrets before considering live execution. Provider-reported spending thresholds are **not hard billing caps**: a request may exceed a limit before cost telemetry arrives. Canary stops subsequent requests when cost is missing or the reported threshold is exceeded. Review provider billing controls and the [full manifest and safety guide](docs/PLATFORM_NEXT.md) before enabling execution. These improvements shipped in v2.4.0; authenticated model-backed test results remain unverified.
+
+## Documentation
+
 | Guide | Topics |
 | --- | --- |
 | [Getting started / distribution](docs/DISTRIBUTION.md) | Stable releases, source checkout, checksums, package and Action installation |

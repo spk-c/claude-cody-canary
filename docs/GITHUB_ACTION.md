@@ -125,7 +125,7 @@ jobs:
           last: 10
 ```
 
-This fork currently has **no floating `v2` or `v1` tag**. Always use the latest **actually published immutable tag** (`spk-c/claude-cody-canary@v2.4.0` at the time of writing) or a reviewed commit SHA. Version 2.3.0 is a prepared immutable GitHub Action tag. Model-backed modes require separately configured Claude access.
+This fork currently has **no floating `v2` or `v1` tag**. Always use the latest **actually published immutable tag** (`spk-c/claude-cody-canary@v2.4.0` at the time of writing) or a reviewed commit SHA. Version 2.4.0 is a published immutable GitHub Action tag. Model-backed modes require separately configured Claude access.
 
 ## Run a first-class scenario suite
 
