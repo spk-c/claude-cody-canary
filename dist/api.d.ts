@@ -107,6 +107,8 @@ export { analyzeGithubRun } from './github-diagnostics.js';
 export type { GithubJobDiagnostic, GithubRunDiagnostic } from './github-diagnostics.js';
 export { auditLiveMcp } from './mcp-live-audit.js';
 export type { LiveMcpFinding, LiveMcpAudit, LiveMcpOptions } from './mcp-live-audit.js';
+export { runAgentE2e, hashE2eAnswer, parseE2eResponse, AgentE2eManifestSchema } from './agent-e2e.js';
+export type { AgentE2eManifest, AgentE2eReport, AgentE2eCaseReport, AgentE2eOptions } from './agent-e2e.js';
 export { analyzeAgentLongitudinal, AgentLongitudinalSchema } from './agent-longitudinal.js';
 export type { AgentLongitudinalCohort, LongitudinalAnalysis, LongitudinalVerdict } from './agent-longitudinal.js';
 export { compareAgentCohorts } from './agent-compare.js';

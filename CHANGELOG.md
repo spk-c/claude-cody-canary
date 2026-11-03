@@ -4,6 +4,10 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Add an opt-in `agent e2e` verified-answer harness with strict fixture schema, run/time budgets, reported-cost accounting, read-only provider CLI execution and SHA-256 answer checks. Preview never calls providers, and execution requires both `--trusted` and `--allow-provider-costs`.
+- Stop further provider invocations when cost telemetry is missing, reported spending exceeds the configured post-hoc threshold or answers are unverifiable; never claim a hard API spend cap. Output only sanitized per-case results and complete longitudinal cohorts.
+- Add `agent hash-answer` for offline expected-answer generation without printing expected text.
+
 - Add offline `agent longitudinal` comparisons with strictly matched scenario/replicate identities, environment fingerprints, independent-scenario exact sign tests and family-wise significance limits.
 - Keep incomplete infrastructure runs and mismatched experiment populations out of quality claims. Preserve missing cross-provider token/cost comparability and never emit prompts or raw outputs.
 

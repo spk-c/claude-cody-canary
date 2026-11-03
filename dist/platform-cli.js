@@ -16,6 +16,7 @@ import { probeMcpSubscriptions } from './mcp-subscriptions.js';
 import { runAgentTest } from './agent-runner.js';
 import { compareAgentCohorts } from './agent-compare.js';
 import { analyzeAgentLongitudinal } from './agent-longitudinal.js';
+import { runAgentE2e, hashE2eAnswer } from './agent-e2e.js';
 import { replayMinimizeScenario } from './scenario-replay.js';
 import { importHistorySqlite, queryHistoryTrends, queryHistoryMatrixSqlite, renderStoredHistory } from './history-sqlite.js';
 import { writeFile } from 'node:fs/promises';
@@ -43,7 +44,7 @@ function integer(value, name) {
 }
 export const PLATFORM_COMMANDS = [
     ['ci', 'analyze'], ['ci', 'run'], ['mcp', 'conformance'], ['mcp', 'live'], ['mcp', 'stdio-negative'], ['mcp', 'listen'], ['minimize'], ['stats'], ['plugin', 'scan'],
-    ['security', 'audit'], ['agent', 'doctor'], ['agent', 'run'], ['agent', 'compare'], ['agent', 'longitudinal'], ['smart', 'select'], ['dashboard'],
+    ['security', 'audit'], ['agent', 'doctor'], ['agent', 'run'], ['agent', 'compare'], ['agent', 'longitudinal'], ['agent', 'e2e'], ['agent', 'hash-answer'], ['smart', 'select'], ['dashboard'],
     ['history', 'sqlite-import'], ['history', 'sqlite-dashboard'], ['history', 'sqlite-trends'], ['history', 'sqlite-matrix'],
 ];
 export function isPlatformCommand(argv) {
@@ -106,6 +107,15 @@ export async function runPlatformCommand(argv) {
         result = auditClaudeSettings(JSON.parse(await readBounded(required(rest[0], 'settings JSON'))));
     else if (cmd === 'agent' && sub === 'doctor')
         result = await discoverAgentAdapters(process.cwd());
+    else if (cmd === 'agent' && sub === 'e2e') {
+        const manifest = JSON.parse(await readBounded(required(rest[0], 'E2E manifest JSON')));
+        result = await runAgentE2e(manifest, { cwd: process.cwd(),
+            ...(rest.includes('--trusted') ? { trusted: true } : {}),
+            ...(rest.includes('--allow-provider-costs') ? { allowProviderCosts: true } : {}) });
+    }
+    else if (cmd === 'agent' && sub === 'hash-answer') {
+        result = { sha256: hashE2eAnswer(await readBounded(required(rest[0], 'expected answer text'), 65536)) };
+    }
     else if (cmd === 'agent' && sub === 'longitudinal') {
         const flag = rest.indexOf('--family-size');
         const familySize = flag === -1 ? 1 : integer(rest[flag + 1], 'family size');

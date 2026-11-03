@@ -82,7 +82,13 @@ The separate [authenticated Claude Code E2E workflow](.github/workflows/live-cla
 
 ## New platform capabilities in v2.3.0
 
-Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These shipped in **npm v2.3.0**. Subsequent roadmap features on the development branch are not yet published; see the [platform guide](docs/PLATFORM_NEXT.md). See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Documentation\n
+Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These shipped in **npm v2.3.0**. Subsequent roadmap features on the development branch are not yet published; see the [platform guide](docs/PLATFORM_NEXT.md). See [platform guide](docs/PLATFORM_NEXT.md) for scope and examples.\n\n## Verified-answer E2E (unreleased development feature)
+
+The current source branch adds a bounded E2E harness for Claude, Codex and Qwen. By default, `claude-canary agent e2e manifest.json` is an **offline preview only**; it never launches a model. The optional execution mode requires both `--trusted` and `--allow-provider-costs`. Independently supplied expected-answer SHA-256 hashes are checked against provider output, and only sanitized observations are reported.
+
+Provider-reported spending thresholds are **not hard billing caps**: a request may exceed a limit before cost telemetry arrives. Canary stops subsequent requests when cost is missing or the reported threshold is exceeded. Review provider billing controls and the [full manifest and safety guide](docs/PLATFORM_NEXT.md) before enabling execution. These improvements are not yet included in npm v2.3.0.
+
+## Documentation\n
 | Guide | Topics |
 | --- | --- |
 | [Getting started / distribution](docs/DISTRIBUTION.md) | Stable releases, source checkout, checksums, package and Action installation |
