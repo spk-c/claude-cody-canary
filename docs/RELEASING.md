@@ -1,6 +1,6 @@
 # Releasing the source-restored fork
 
-The v2.3.0 release candidate is prepared; the previously published immutable GitHub Release and npm package were **v2.2.0** (2026-11-02). For future releases, update source, lockfile and committed `dist/` together, run CI, and manually publish an immutable release. Model-backed
+The v2.4.0 release candidate is prepared. The latest previously published immutable GitHub Release and npm package were v2.3.0 (2026-11-02). For future releases, update source, lockfile and committed `dist/` together, run CI, and manually publish an immutable release. Model-backed
 Claude E2E and GitHub branch protection are **not** requirements.
 
 ## Release checks
@@ -51,3 +51,9 @@ npm run check:dist
 
 Commit the source/version metadata and generated distribution together before
 releasing. Do not rewrite existing tags; publish a new patch release for fixes.
+
+## One-time v2.4.0 publication
+
+After all PR and main checks are green, push the lightweight tag `v2.4.0` pointing exactly to main HEAD. Only this exact tag triggers the one-time release path, which repeats source tests, builds, audits, consumer smoke tests and produces release provenance and checksums. A mismatched main SHA is rejected. On successful GitHub publication it dispatches the existing npm OIDC Trusted Publishing workflow for version `2.4.0`; npm independently checks the public GitHub Release, exact bytes and the tagged package version. Do not move or replace the release tag.
+
+GitHub Marketplace registration is a separate human-authenticated step. In the release editor, select **Publish this Action to the GitHub Marketplace**, accept the Developer Agreement if prompted, select Continuous integration as the primary category, and complete GitHub's 2FA verification. The Marketplace display name is `SPK-C Claude Canary`, whereas the npm package and historical code attribution remain unchanged. Do not claim Marketplace publication merely because the GitHub Release exists.

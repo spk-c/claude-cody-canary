@@ -9,8 +9,8 @@ in earlier archived documentation are **not** proof of availability here.
 | Surface | Current fork status | Link |
 | --- | --- | --- |
 | Source repository | Available with TypeScript source, tests, examples and build tools | [spk-c/claude-cody-canary](https://github.com/spk-c/claude-cody-canary) |
-| GitHub Release | **v2.3.0 release candidate**; immutable tag and downloadable package | [v2.2.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.3.0) |
-| Composite GitHub Action | Source in repository at an exact tag; test independently before adopting | `spk-c/claude-cody-canary@v2.3.0` |
+| GitHub Release | **v2.4.0 release target**; immutable tag, checksums and source provenance verified by release workflow | [v2.4.0](https://github.com/spk-c/claude-cody-canary/releases/tag/v2.4.0) |
+| Composite GitHub Action | Source in repository at an exact tag; test independently before adopting | `spk-c/claude-cody-canary@v2.4.0` |
 | Floating Action channel | **Not published**; do not use `@v2` or `@v1` with this fork | Use the immutable tag |
 | npm registry | [`claude-code-canary@2.3.0`](https://www.npmjs.com/package/claude-code-canary/v/2.3.0) **prepared for npm Trusted Publishing** with signed provenance | [npm publishing setup](NPM_PUBLISHING.md) |
 | GitHub Marketplace | No Marketplace listing is claimed for this fork | Use the tagged Action directly |
@@ -24,7 +24,7 @@ and why this is not a claim of official upstream ownership.
 Download **Source code (zip)** or clone the exact release tag:
 
 ```sh
-git clone --branch v2.3.0 --depth 1 https://github.com/spk-c/claude-cody-canary.git
+git clone --branch v2.4.0 --depth 1 https://github.com/spk-c/claude-cody-canary.git
 cd claude-cody-canary
 npm ci
 npm run check
@@ -64,7 +64,7 @@ source. Use the GitHub source archive if you need to modify or rebuild it.
 ## GitHub Action at a pinned release
 
 ```yaml
-- uses: spk-c/claude-cody-canary@v2.3.0
+- uses: spk-c/claude-cody-canary@v2.4.0
   with:
     mode: mcp-check
     mcp-contract: .canary/mcp/server.mcp.yml

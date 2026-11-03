@@ -4,6 +4,10 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-11-03
+
+This release ships the source-tested MCP/CI/agent improvements introduced after v2.3.0. Authenticated remote MCP interoperability and real provider-backed multi-agent E2E measurements remain separate unfinished work.
+
 - Correct MCP 2026-07-28 MRTR retry handling for requestState-only replies, reject unknown input-request methods, and clear stale inputResponses/requestState when absent in the next round.
 - Add bounded, independently approved offline multi-round MRTR planning and local-only three-cycle subscriptions/listen correlation testing.
 - Require correlated JSON-RPC `-32600` error responses for HTTP 400/422 negative-case conformance; bare HTTP status is no longer sufficient.

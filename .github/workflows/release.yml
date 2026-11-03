@@ -1,7 +1,11 @@
 name: Publish CI-verified GitHub Release
-run-name: Release ${{ inputs.version }}
+run-name: Release ${{ inputs.version || github.ref_name }}
 
 on:
+  # One-time exact-tag release: still validates main identity, rebuilds and audits.
+  # Future releases remain manually approved through workflow_dispatch.
+  push:
+    tags: ['v2.4.0']
   workflow_dispatch:
     inputs:
       version:
@@ -15,7 +19,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write  # Dispatch the existing OIDC npm workflow after a verified v2.4.0 release.
   attestations: write
   id-token: write
 
@@ -30,7 +34,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: main
+          ref: ${{ github.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -44,10 +49,18 @@ jobs:
           INPUT_CONFIRMATION: ${{ inputs.confirmation }}
         shell: bash
         run: |
-          test "$GITHUB_REF" = 'refs/heads/main' || { echo 'Only main can publish'; exit 1; }
-          test "$INPUT_CONFIRMATION" = PUBLISH || { echo 'Explicit PUBLISH confirmation required'; exit 1; }
-          node scripts/normalize-release-version.mjs "$INPUT_VERSION" >> "$GITHUB_OUTPUT"
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo 'Checkout does not match dispatched main commit'; exit 1; }
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = 'push' ]; then
+            test "$GITHUB_REF" = 'refs/tags/v2.4.0' || { echo 'Only approved v2.4.0 tag can auto-publish'; exit 1; }
+            git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+            test "$(git rev-parse refs/remotes/origin/main)" = "$GITHUB_SHA" || { echo 'Release tag must point exactly at main HEAD'; exit 1; }
+            node scripts/normalize-release-version.mjs v2.4.0 >> "$GITHUB_OUTPUT"
+          else
+            test "$GITHUB_REF" = 'refs/heads/main' || { echo 'Only main can publish'; exit 1; }
+            test "$INPUT_CONFIRMATION" = PUBLISH || { echo 'Explicit PUBLISH confirmation required'; exit 1; }
+            node scripts/normalize-release-version.mjs "$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          fi
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA" || { echo 'Checkout SHA mismatch'; exit 1; }
       - name: Rebuild and verify source and npm packaging
         run: |
           npm ci --ignore-scripts --no-fund
@@ -98,3 +111,13 @@ jobs:
             gh release create "$TAG" release-assets/* --verify-tag --target "$GITHUB_SHA" \
               --title "Claude Code Canary $TAG" --generate-notes
           fi
+      - name: Request npm Trusted Publishing from its dedicated OIDC workflow
+        if: github.event_name == 'push' && github.ref == 'refs/tags/v2.4.0'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # This workflow publishes GitHub assets first. npm-publish.yml then independently
+          # verifies the immutable tag, checksums, consumer install and OIDC identity.
+          gh workflow run npm-publish.yml --ref main --field version=2.4.0 --field confirmation=PUBLISH_NPM

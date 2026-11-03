@@ -1,6 +1,6 @@
-name: Claude Code Canary
-description: Regression-test Claude Code releases, plugins, MCP servers and configs with deterministic scenarios and version bisecting.
-author: SLP-DEV1
+name: SPK-C Claude Canary
+description: Regression-test Claude Code, coding agents, plugins and MCP servers with reproducible CI evidence.
+author: spk-c
 
 branding:
   icon: activity

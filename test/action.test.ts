@@ -14,7 +14,7 @@ describe('Claude Canary GitHub Action', () => {
       outputs?: Record<string, unknown>;
     };
 
-    expect(action.name).toBe('Claude Code Canary');
+    expect(action.name).toBe('SPK-C Claude Canary');
     expect(action.description).toMatch(/regression-test/i);
     expect(action.description!.length).toBeLessThan(125);
     expect(action.branding).toEqual({ icon: 'activity', color: 'yellow' });

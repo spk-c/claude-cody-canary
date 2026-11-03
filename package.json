@@ -1,6 +1,6 @@
 {
   "name": "claude-code-canary",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Regression and compatibility testing for Claude Code, plugins and MCP servers with reproducible CI evidence",
   "author": "SLP-DEV1",
   "type": "module",
