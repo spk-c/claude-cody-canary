@@ -107,7 +107,8 @@ The published v2.3.0 release includes bounded CI failure diagnostics, read-only 
 - [x] Conservative family-wise correction for bounded pass-rate comparisons.
 - [x] Offline repeated-run analysis with exact matching by scenario and replicate, fixed environment fingerprints, scenario-level sign tests and optional family-wise adjustment.
 - [x] Budgeted, explicitly approved read-only E2E adapter harness: preview, independent expected-answer SHA-256 grading, provider-reported cost ledger, safe partial results and complete longitudinal cohort export.
-- [ ] Live authenticated provider E2E validation with real provider credentials, independent scenario grader provenance, enforced provider-side hard spending limits and monitored long-term runs remain open.
+- [x] External Ed25519 reviewer signature verification, pinned-key checks and a manual-only preview-first GitHub Actions workflow for approved provider tests.
+- [ ] Real provider-backed E2E execution with configured accounts, confirmed provider-side spending controls, verified independent reviewers and ongoing monitored runs remains open.
 ## v2.3 CI quality follow-ups — planned (Issue #42)
 
 - Test real GitHub workflow attempts including cancelled runners and permission edge cases.

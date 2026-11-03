@@ -115,7 +115,9 @@ if (suiteSubcommand === 'init') {
       '  mcp live <contract>         Trusted read-only MCP audit; --negative is loopback only\n' +
       '  minimize replay <json>      Approved isolated scenario command replay\n' +
       '  agent run <agent> <file>    Approved read-only Claude/Codex/Qwen run\n' +
-      '  agent e2e <manifest.json>   Offline preview; execution needs --trusted --allow-provider-costs\n' +
+      '  agent e2e <fixture.json>   Paid runs require signed reviewer fixtures and billing review\n' +
+      '  agent e2e-sign <file>      Sign a reviewed E2E fixture with Ed25519\n' +
+      '  agent e2e-verify <file>    Verify E2E fixture reviewer signature\n' +
       '  agent hash-answer <file>   Compute the SHA-256 of an expected answer without printing text\n' +
       '  history sqlite-import <index> <db>   Persist sanitized history (Node 22+)\n' +
       '  history sqlite-trends <db>          Local daily history metrics\n' +

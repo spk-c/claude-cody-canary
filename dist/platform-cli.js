@@ -17,6 +17,7 @@ import { runAgentTest } from './agent-runner.js';
 import { compareAgentCohorts } from './agent-compare.js';
 import { analyzeAgentLongitudinal } from './agent-longitudinal.js';
 import { runAgentE2e, hashE2eAnswer } from './agent-e2e.js';
+import { signAgentE2eManifest, verifyAgentE2eManifest } from './agent-e2e-attestation.js';
 import { replayMinimizeScenario } from './scenario-replay.js';
 import { importHistorySqlite, queryHistoryTrends, queryHistoryMatrixSqlite, renderStoredHistory } from './history-sqlite.js';
 import { writeFile } from 'node:fs/promises';
@@ -44,7 +45,7 @@ function integer(value, name) {
 }
 export const PLATFORM_COMMANDS = [
     ['ci', 'analyze'], ['ci', 'run'], ['mcp', 'conformance'], ['mcp', 'live'], ['mcp', 'stdio-negative'], ['mcp', 'listen'], ['minimize'], ['stats'], ['plugin', 'scan'],
-    ['security', 'audit'], ['agent', 'doctor'], ['agent', 'run'], ['agent', 'compare'], ['agent', 'longitudinal'], ['agent', 'e2e'], ['agent', 'hash-answer'], ['smart', 'select'], ['dashboard'],
+    ['security', 'audit'], ['agent', 'doctor'], ['agent', 'run'], ['agent', 'compare'], ['agent', 'longitudinal'], ['agent', 'e2e'], ['agent', 'e2e-sign'], ['agent', 'e2e-verify'], ['agent', 'hash-answer'], ['smart', 'select'], ['dashboard'],
     ['history', 'sqlite-import'], ['history', 'sqlite-dashboard'], ['history', 'sqlite-trends'], ['history', 'sqlite-matrix'],
 ];
 export function isPlatformCommand(argv) {
@@ -107,8 +108,46 @@ export async function runPlatformCommand(argv) {
         result = auditClaudeSettings(JSON.parse(await readBounded(required(rest[0], 'settings JSON'))));
     else if (cmd === 'agent' && sub === 'doctor')
         result = await discoverAgentAdapters(process.cwd());
+    else if (cmd === 'agent' && sub === 'e2e-sign') {
+        const keyPos = rest.indexOf('--private-key');
+        const outPos = rest.indexOf('--output');
+        if (keyPos < 0 || outPos < 0)
+            throw new Error('Reviewer signing requires a private key and output path.');
+        const input = JSON.parse(await readBounded(required(rest[0], 'E2E manifest JSON')));
+        const reviewerKey = await readBounded(required(rest[keyPos + 1], 'Ed25519 private PEM'), 8192);
+        const signed = signAgentE2eManifest(input, reviewerKey);
+        const output = required(rest[outPos + 1], 'signed JSON output');
+        await writeFile(output, JSON.stringify(signed, null, 2) + '\n', { encoding: 'utf8', flag: 'wx' });
+        result = { ok: true, output, manifestHash: signed.manifestHash, reviewerKeyFingerprint: signed.reviewerKeyFingerprint };
+    }
+    else if (cmd === 'agent' && sub === 'e2e-verify') {
+        const keyPos = rest.indexOf('--public-key');
+        if (keyPos < 0)
+            throw new Error('Reviewer public key required.');
+        const signed = JSON.parse(await readBounded(required(rest[0], 'signed E2E JSON')));
+        const key = await readBounded(required(rest[keyPos + 1], 'reviewer Ed25519 public PEM'), 8192);
+        const verified = verifyAgentE2eManifest(signed, key);
+        if (!verified.verified)
+            throw new Error('E2E fixture signature validation failed.');
+        result = verified;
+    }
     else if (cmd === 'agent' && sub === 'e2e') {
-        const manifest = JSON.parse(await readBounded(required(rest[0], 'E2E manifest JSON')));
+        const parsed = JSON.parse(await readBounded(required(rest[0], 'E2E manifest JSON')));
+        const active = rest.includes('--trusted') && rest.includes('--allow-provider-costs');
+        const looksSigned = parsed !== null && typeof parsed === 'object' && parsed.algorithm === 'ed25519-e2e-v1';
+        if (active && (!looksSigned || !rest.includes('--billing-controls-reviewed')))
+            throw new Error('Paid E2E requires a reviewer-signed fixture and explicit billing-controls review.');
+        let manifest = parsed;
+        if (looksSigned) {
+            const keyPos = rest.indexOf('--public-key');
+            if (keyPos < 0)
+                throw new Error('A pinned reviewer public key is required for signed fixtures.');
+            const key = await readBounded(required(rest[keyPos + 1], 'reviewer public PEM'), 8192);
+            const verdict = verifyAgentE2eManifest(parsed, key);
+            if (!verdict.verified)
+                throw new Error('Reviewer signature validation failed.');
+            manifest = parsed.manifest;
+        }
         result = await runAgentE2e(manifest, { cwd: process.cwd(),
             ...(rest.includes('--trusted') ? { trusted: true } : {}),
             ...(rest.includes('--allow-provider-costs') ? { allowProviderCosts: true } : {}) });

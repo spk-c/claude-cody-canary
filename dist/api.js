@@ -60,6 +60,7 @@ export { historyDimensions, safeHistoryDimension, summarizeHistoryMatrix } from 
 export { summarizeHistory } from './history-insights.js';
 export { analyzeGithubRun } from './github-diagnostics.js';
 export { auditLiveMcp } from './mcp-live-audit.js';
+export { signAgentE2eManifest, verifyAgentE2eManifest } from './agent-e2e-attestation.js';
 export { runAgentE2e, hashE2eAnswer, parseE2eResponse, AgentE2eManifestSchema } from './agent-e2e.js';
 export { analyzeAgentLongitudinal, AgentLongitudinalSchema } from './agent-longitudinal.js';
 export { compareAgentCohorts } from './agent-compare.js';

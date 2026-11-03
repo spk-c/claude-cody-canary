@@ -1,0 +1,132 @@
+name: Reviewed Agent E2E (manual, opt-in)
+
+on:
+  workflow_dispatch:
+    inputs:
+      agent:
+        description: "Review-approved provider adapter"
+        required: true
+        type: choice
+        options: [claude, codex, qwen]
+      mode:
+        description: "Preview is free; live is potentially billable"
+        required: true
+        type: choice
+        default: preview
+        options: [preview, live]
+      billing_review:
+        description: "Explicit confirmation after reviewing account-level spending controls"
+        required: true
+        type: choice
+        default: NO
+        options: [NO, PROVIDER_LIMITS_REVIEWED]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reviewed-agent-e2e
+  cancel-in-progress: false
+
+jobs:
+  reviewed:
+    # Configure required reviewers on this environment BEFORE enabling live usage.
+    environment: canary-paid-e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Refuse anything but main and deliberate live billing acknowledgement
+        env:
+          SOURCE_REF: ${{ github.ref }}
+          REQUESTED_MODE: ${{ inputs.mode }}
+          BILLING_REVIEW: ${{ inputs.billing_review }}
+        shell: bash
+        run: |
+          if [ "$SOURCE_REF" != 'refs/heads/main' ]; then
+            echo '::error::Only main may execute reviewed E2E.'
+            exit 1
+          fi
+          if [ "$REQUESTED_MODE" = live ] && [ "$BILLING_REVIEW" != PROVIDER_LIMITS_REVIEWED ]; then
+            echo '::error::Live tests require a manual review of provider-side spend controls.'
+            exit 1
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+      - name: Build reviewed local tester
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run lint
+          npm run build
+      - name: Decode reviewer fixture without printing any prompts
+        shell: bash
+        env:
+          FIXTURE_B64: ${{ secrets.CANARY_E2E_SIGNED_MANIFEST_B64 }}
+          REVIEWER_PUBKEY_B64: ${{ secrets.CANARY_E2E_REVIEWER_PUBKEY_B64 }}
+          REQUESTED_AGENT: ${{ inputs.agent }}
+        run: |
+          set -eu
+          if [ -z "$FIXTURE_B64" ] || [ -z "$REVIEWER_PUBKEY_B64" ]; then
+            echo '::error::A signed fixture and externally pinned reviewer public key are required.'
+            exit 1
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/canary-e2e"
+          printf '%s' "$FIXTURE_B64" | base64 -d > "$RUNNER_TEMP/canary-e2e/fixture.json"
+          printf '%s' "$REVIEWER_PUBKEY_B64" | base64 -d > "$RUNNER_TEMP/canary-e2e/reviewer.pem"
+          node dist/v2-cli.js agent e2e-verify "$RUNNER_TEMP/canary-e2e/fixture.json" --public-key "$RUNNER_TEMP/canary-e2e/reviewer.pem" >/dev/null
+          node -e "const m=require(process.env.RUNNER_TEMP+'/canary-e2e/fixture.json');if(m.manifest.agent!==process.env.REQUESTED_AGENT)process.exit(2)"
+          echo 'Reviewer signature and requested adapter verified.'
+      - name: Offline preview of signed fixture
+        shell: bash
+        run: node dist/v2-cli.js agent e2e "$RUNNER_TEMP/canary-e2e/fixture.json" --public-key "$RUNNER_TEMP/canary-e2e/reviewer.pem"
+      - name: Require protected environment approval before billable CLI installation
+        if: inputs.mode == 'live'
+        shell: bash
+        env:
+          RUN_APPROVAL: ${{ secrets.CANARY_E2E_RUN_APPROVAL }}
+        run: |
+          if [ "$RUN_APPROVAL" != 'I_ACCEPT_PROVIDER_COSTS_FOR_VERIFIED_CANARY_E2E' ]; then
+            echo '::error::Set the protected canary-paid-e2e environment approval secret before a paid run.'
+            exit 1
+          fi
+      - name: Install Claude Code (only on explicitly approved live run)
+        if: inputs.mode == 'live' && inputs.agent == 'claude'
+        run: npm install --global @anthropic-ai/claude-code
+      - name: Install Codex (only on explicitly approved live run)
+        if: inputs.mode == 'live' && inputs.agent == 'codex'
+        run: npm install --global @openai/codex
+      - name: Install Qwen Code (only on explicitly approved live run)
+        if: inputs.mode == 'live' && inputs.agent == 'qwen'
+        run: npm install --global @qwen-code/qwen-code
+      - name: Claude reviewed live call
+        if: inputs.mode == 'live' && inputs.agent == 'claude'
+        shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then echo '::error::Missing provider authentication.'; exit 1; fi
+          node dist/v2-cli.js agent e2e "$RUNNER_TEMP/canary-e2e/fixture.json" --public-key "$RUNNER_TEMP/canary-e2e/reviewer.pem" --trusted --allow-provider-costs --billing-controls-reviewed
+      - name: Codex reviewed live call
+        if: inputs.mode == 'live' && inputs.agent == 'codex'
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then echo '::error::Missing provider authentication.'; exit 1; fi
+          node dist/v2-cli.js agent e2e "$RUNNER_TEMP/canary-e2e/fixture.json" --public-key "$RUNNER_TEMP/canary-e2e/reviewer.pem" --trusted --allow-provider-costs --billing-controls-reviewed
+      - name: Qwen reviewed live call
+        if: inputs.mode == 'live' && inputs.agent == 'qwen'
+        shell: bash
+        env:
+          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+        run: |
+          if [ -z "$DASHSCOPE_API_KEY" ]; then echo '::error::Missing provider authentication.'; exit 1; fi
+          node dist/v2-cli.js agent e2e "$RUNNER_TEMP/canary-e2e/fixture.json" --public-key "$RUNNER_TEMP/canary-e2e/reviewer.pem" --trusted --allow-provider-costs --billing-controls-reviewed
+      - name: Delete temporary fixture and reviewer public key
+        if: always()
+        shell: bash
+        run: rm -rf "$RUNNER_TEMP/canary-e2e"

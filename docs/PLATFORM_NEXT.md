@@ -122,3 +122,46 @@ The manifest is a strict JSON object with `schemaVersion:1`, `agent` (Claude/Cod
 The verifier accepts Claude JSON `result`, Qwen JSON `response` or `result`, and Codex JSONL with one completed turn and a final agent message. It computes and compares the normalized answer hash in memory. Malformed or unsupported response formats are reported as infrastructure/unverifiable, never silently counted as model failures. A successful process exit alone does not count as passing the test. Only if every planned case is verifiable and completes without a cost-tracking error or reported-cost threshold violation does the report include a sanitized `cohort` compatible with `agent longitudinal`. Partial or infrastructure-failed runs do not create a complete cohort.
 
 **Cost limitation:** `maxReportedCostUsd` is a retrospective stopping threshold based on amounts disclosed by the CLI, *not* a guaranteed provider-side spending cap. One request can exceed the threshold before its cost is known. Provider cost telemetry may be unavailable (notably for Codex); in that case Canary stops before additional requests. `reserveUsdPerRun` only reserves room in the local ledger before starting another request, and cannot guarantee actual spend. Limits on run count, subprocess duration and output size reduce risk but do not replace a provider billing limit or independent operating-system sandbox. Review provider credentials and billing limits before opt-in execution.
+
+### Reviewer-signed fixtures and provider-side billing review (unreleased)
+
+**Preview without provider calls**: `claude-canary agent e2e ./manifest.json`.
+
+For chargeable runs, an **independent reviewer** should first check every prompt, its expected-answer SHA-256, the model/version and the fixture limits. The reviewer signs that exact manifest using an Ed25519 private key that is not stored in the repository or on CI. The runner must separately pin the reviewer's trusted public key; simply generating a new key and signing your own fixture does not make the evaluation independent.
+
+```sh
+claude-canary agent e2e-sign manifest.json --private-key reviewer-private.pem --output fixture.signed.json
+claude-canary agent e2e-verify fixture.signed.json --public-key reviewed-public.pem
+claude-canary agent e2e fixture.signed.json --public-key reviewed-public.pem
+```
+
+No model is launched by signing, verifying, or previewing. Actual execution additionally requires all three acknowledgement flags, and must use the same reviewer-signed fixture:
+
+```sh
+claude-canary agent e2e fixture.signed.json --public-key reviewed-public.pem --trusted --allow-provider-costs --billing-controls-reviewed
+```
+
+The last flag is a **manual statement** that provider billing limits were checked, not an automated verification. A reviewer signature authenticates the fixture against the pinned public key; it does not prove that the reviewer is independent, the expected answer is factually correct, or the provider budget was configured. Logs never contain private keys by design; keep the signed fixture private if its prompts are private. The sanitized report contains only verification counts and scenario hashes. CLI execution on an unsigned fixture is refused even if the user supplies cost-approval flags.
+
+**Provider-side controls (review before running):**
+
+- Claude: check organization/workspace **Spend limits** in Claude Console; Claude Code uses a dedicated workspace when Console-billed. https://platform.claude.com/docs/en/manage-claude/workspaces
+- Codex using OpenAI API billing: check your project or organization **Spend** configuration with **Enforce a hard limit** enabled. https://developers.openai.com/api/docs/guides/spend-limits. ChatGPT subscription sign-in is a different billing path and not proof of an API spend cap.
+- Qwen using Alibaba Model Studio: check **Cost and Usage > Budget Management**, set the correct account/workspace/API-key scope and enable **Stop Service When Budget Reached** for pay-as-you-go requests. https://help.aliyun.com/en/model-studio/budget-management. Other Qwen model hosts or local models use different cost controls.
+
+Limits are monthly, can include other workloads, and have enforcement/settlement delay. They **cannot** guarantee a per-test hard dollar cap. Canary cannot query all provider billing consoles or independently attest current budget settings. If CLI authentication, reviewer key, or adequate provider-side controls are unavailable, stop at preview and do not claim a paid benchmark was executed.
+
+### GitHub manual reviewed E2E workflow
+
+The workflow `.github/workflows/manual-agent-e2e.yml` is **workflow_dispatch only**. It defaults to `preview` and refuses any branch other than `main`. No provider is installed or called in preview mode. Actual use requires creating the GitHub Actions environment `canary-paid-e2e`, enabling its **required reviewers**, and keeping provider credentials restricted to that environment. GitHub does **not** automatically configure required reviewers simply because a workflow names an environment.
+
+Configure environment-scoped secrets (do **not** commit private keys, API keys, or private prompts):
+
+- `CANARY_E2E_SIGNED_MANIFEST_B64` — base64-encoded JSON produced by the independent reviewer.
+- `CANARY_E2E_REVIEWER_PUBKEY_B64` — base64-encoded, externally pinned Ed25519 reviewer public PEM.
+- `CANARY_E2E_RUN_APPROVAL` — required explicit value `I_ACCEPT_PROVIDER_COSTS_FOR_VERIFIED_CANARY_E2E`; without it all live jobs stop before provider installation.
+- One provider key: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` or `DASHSCOPE_API_KEY`, depending on the selected adapter.
+
+From **Actions > Reviewed Agent E2E (manual, opt-in) > Run workflow**, choose the correct provider, leave mode at `preview` first, and confirm the expected signed-fixture metadata. Switch to `live` only after reviewing the relevant provider-side usage controls and choosing `PROVIDER_LIMITS_REVIEWED`. The workflow never schedules paid calls automatically and refuses missing signatures, wrong provider selection, missing approval or absent API authentication. Its report is sanitized, but the fixture itself contains prompts: protect its associated secret and reviewers. A green preview is **not** evidence of an executed live benchmark.
+
+OpenAI, Anthropic and Alibaba enforce their own controls with different scopes and possible delays. The workflow does not assert that account-level spending caps are verified merely because an operator confirmed review.
