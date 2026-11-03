@@ -111,6 +111,8 @@ The published v2.3.0 release includes bounded CI failure diagnostics, read-only 
 - [ ] Real provider-backed E2E execution with configured accounts, confirmed provider-side spending controls, verified independent reviewers and ongoing monitored runs remains open.
 ## v2.3 CI quality follow-ups — planned (Issue #42)
 
-- Test real GitHub workflow attempts including cancelled runners and permission edge cases.
-- Provide privacy-safe failure triage suggestions and stronger dependency/fixture replay cases.
+- [x] Verify historical failed workflows and cancelled runner allocations against real GitHub API metadata, including a deliberately invalid credential/HTTP 401 test.
+- [x] Return bounded privacy-safe triage suggestions and fixed failure-stage categories without returning raw logs or leaking tokens.
+- [x] Verify minimization against a real detached Git fixture and provide pinned commit/scenario provenance, with dirty-tree and mismatched-SHA rejection.
+- [ ] Continue improving optional GitHub log-specific root-cause evidence; structured metadata alone cannot prove why a step failed.
 

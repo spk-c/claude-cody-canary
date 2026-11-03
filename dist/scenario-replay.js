@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { createDetachedWorktree, getRepoRoot, getTrackedChanges, resolveCommit } from './git.js';
 import { runShellCommand } from './process.js';
 import { minimizeFailure } from './minimize.js';
@@ -10,6 +11,8 @@ export function validateReplayScenario(input) {
         throw new Error('Replay must specify a nonzero expected verification exit code.');
     if (input.failureMarker !== undefined && (!input.failureMarker || input.failureMarker.length > 200))
         throw new Error('Invalid failure marker.');
+    if (input.expectedHeadSha !== undefined && !/^[a-f0-9]{40}$/.test(input.expectedHeadSha))
+        throw new Error('Replay expectedHeadSha must be a full immutable 40-character commit hash.');
     const seen = new Set();
     for (const step of input.steps) {
         if (!step || typeof step.id !== 'string' || !safeId(step.id) || seen.has(step.id) ||
@@ -43,6 +46,16 @@ export async function replayMinimizeScenario(input, options) {
     if ((await getTrackedChanges(repo)).length)
         throw new Error('Replay requires a clean tracked Git working tree.');
     const ref = await resolveCommit(repo, 'HEAD');
+    if (scenario.expectedHeadSha !== undefined && scenario.expectedHeadSha !== ref)
+        throw new Error('Replay expectedHeadSha does not match the checked-out repository HEAD.');
+    const scenarioFingerprint = createHash('sha256').update(JSON.stringify({
+        version: scenario.version,
+        steps: scenario.steps.map(step => [step.id, step.command, step.dependsOn ?? []]),
+        verifyCommand: scenario.verifyCommand,
+        expectedExitCode: scenario.expectedExitCode,
+        failureMarker: scenario.failureMarker ?? null,
+        expectedHeadSha: scenario.expectedHeadSha ?? null,
+    })).digest('hex');
     const result = await minimizeDependentSteps(scenario, async (steps) => {
         if (Date.now() >= deadline)
             throw new Error('Replay wall-time budget exhausted.');
@@ -67,7 +80,8 @@ export async function replayMinimizeScenario(input, options) {
             await worktree.cleanup();
         }
     }, Math.min(options.maxChecks ?? 24, 64));
-    return { originalCount: result.originalCount, remaining: result.remaining.map(x => x.id),
+    return { schemaVersion: 1, headSha: ref, scenarioFingerprint, originalFailureVerified: true,
+        originalCount: result.originalCount, remaining: result.remaining.map(x => x.id),
         checks: result.checks, budgetExhausted: result.budgetExhausted };
 }
 //# sourceMappingURL=scenario-replay.js.map

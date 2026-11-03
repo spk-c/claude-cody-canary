@@ -348,7 +348,7 @@ export type { McpWireNotifications, McpSseResult } from './mcp-wire.js';
 export { agentReadOnlyArgs, runAgentTest } from './agent-runner.js';
 export type { AgentTestOptions, AgentTestResult } from './agent-runner.js';
 export { minimizeDependentSteps, replayMinimizeScenario, validateReplayScenario } from './scenario-replay.js';
-export type { ReplayStep, ReplayScenario, ReplayOptions } from './scenario-replay.js';
+export type { ReplayStep, ReplayScenario, ReplayOptions, ReplayProvenanceResult } from './scenario-replay.js';
 export { importHistorySqlite, queryHistorySqlite, queryHistoryTrends, queryHistoryMatrixSqlite, renderStoredHistory } from './history-sqlite.js';
 export type { HistoryStoreResult, HistoryTrend } from './history-sqlite.js';
 export { sortSuiteByPriority } from './suite.js';

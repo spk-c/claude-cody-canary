@@ -1,5 +1,12 @@
 import { createHash } from 'node:crypto';
 const rules = [
+    { kind: 'cancelled-before-execution', signals: [
+            [/CI_JOB_CANCELLED_UNASSIGNED_WITHOUT_EXECUTED_STEPS/, 'cancelled-before-execution'],
+        ], action: 'Inspect cancellation source, runner queue and concurrency; do not assume runner outage or rerun automatically.', retry: false },
+    { kind: 'permission', signals: [
+            [/Resource not accessible by integration|The token does not have the required permissions|insufficient permissions to access|HTTP (?:401|403)(?:\b|$)|\b(?:401|403) Forbidden\b/i, 'github-auth-or-permission'],
+            [/Permission denied to github-actions\[bot\]|GitHub App lacks permissions/i, 'github-token-permission'],
+        ], action: 'Inspect GITHUB_TOKEN permissions, event trust and required secrets; do not log credentials or automatically broaden access.', retry: false },
     { kind: 'runner-infrastructure', signals: [
             [/job.*(?:cancelled|canceled).*?(?:runner|assign)|runner.*(?:not assigned|not available)|waiting for a runner/i, 'runner-unavailable'],
             [/runner.*(?:lost communication|offline)|failed to acquire.*runner/i, 'runner-disconnected'],

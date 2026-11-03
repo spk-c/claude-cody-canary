@@ -1,4 +1,4 @@
-import { analyzeCiLog } from './ci-insights.js';
+import { analyzeCiLog, groupCiInsights } from './ci-insights.js';
 function safeName(name) {
     if (!/^[a-zA-Z0-9_.-]{1,100}$/.test(name))
         throw new Error('Invalid GitHub owner/repo identifier.');
@@ -51,6 +51,34 @@ async function fetchApi(url, opts) {
     }
     return JSON.parse(new TextDecoder().decode(combined));
 }
+/**
+ * GitHub step titles are untrusted, user-authored metadata. Export only a
+ * fixed category; never copy arbitrary step text into public diagnostics.
+ */
+function failedJobStage(job) {
+    const steps = Array.isArray(job.steps) ? job.steps : [];
+    const failed = steps.find((entry) => object(entry) && entry.conclusion === 'failure');
+    if (!object(failed) || typeof failed.name !== 'string')
+        return null;
+    const name = failed.name.toLowerCase();
+    if (/permission|auth|credential|secret|token/.test(name))
+        return 'authorization';
+    if (/install|dependenc|npm ci|package/.test(name))
+        return 'dependencies';
+    if (/build|test|lint|typecheck|check|verify/.test(name))
+        return 'tests';
+    if (/publish|release|deploy|upload/.test(name))
+        return 'publishing';
+    if (/checkout|setup|initialize/.test(name))
+        return 'setup';
+    return 'unknown';
+}
+function observedExecution(job, runnerAssigned) {
+    const steps = Array.isArray(job.steps) ? job.steps : [];
+    return runnerAssigned || steps.some((entry) => object(entry) &&
+        (entry.status === 'in_progress' || entry.status === 'completed') &&
+        typeof entry.started_at === 'string');
+}
 /** Read-only GitHub Action history; no log/body is copied into the result. */
 export async function analyzeGithubRun(owner, repo, runId, opts = {}) {
     safeName(owner);
@@ -73,14 +101,18 @@ export async function analyzeGithubRun(owner, repo, runId, opts = {}) {
                 if (!object(job) || !Number.isSafeInteger(job.id) || typeof job.name !== 'string' || typeof job.status !== 'string')
                     throw new Error('Invalid GitHub job record.');
                 const cancelled = job.conclusion === 'cancelled' || job.conclusion === 'canceled';
-                const runnerAssigned = typeof job.runner_name === 'string' && job.runner_name.length > 0;
-                const started = typeof job.started_at === 'string';
-                const diagnosis = cancelled && !started && !runnerAssigned
-                    ? analyzeCiLog('runner not assigned; job cancelled before start', 1)
+                const runnerAssigned = typeof job.runner_name === 'string' && job.runner_name.length > 0 ||
+                    Number.isSafeInteger(job.runner_id) && Number(job.runner_id) > 0;
+                // GitHub started_at may be set when a job is merely queued/scheduled.
+                // Do not infer runner allocation or actual test execution from it.
+                const started = observedExecution(job, runnerAssigned);
+                const diagnosis = cancelled && !started
+                    ? analyzeCiLog('CI_JOB_CANCELLED_UNASSIGNED_WITHOUT_EXECUTED_STEPS', 1)
                     : job.conclusion === 'success' ? analyzeCiLog('', 0)
                         : analyzeCiLog('', 1);
                 jobs.push({ id: Number(job.id), name: job.name.slice(0, 150), attempt, status: job.status,
-                    conclusion: typeof job.conclusion === 'string' ? job.conclusion : null, runnerAssigned, started, diagnosis });
+                    conclusion: typeof job.conclusion === 'string' ? job.conclusion : null,
+                    runnerAssigned, started, diagnosis, failedStage: failedJobStage(job) });
             }
             if (response.jobs.length < 100) {
                 complete = true;
@@ -96,8 +128,14 @@ export async function analyzeGithubRun(owner, repo, runId, opts = {}) {
         summary: {
             successful: jobs.filter(x => x.conclusion === 'success').length,
             failed: jobs.filter(x => x.conclusion === 'failure').length,
-            cancelledBeforeStart: jobs.filter(x => x.diagnosis.kind === 'runner-infrastructure').length,
+            cancelledBeforeStart: jobs.filter(x => x.diagnosis.kind === 'cancelled-before-execution').length,
             incomplete: jobs.filter(x => x.status !== 'completed').length,
-        }, retainsOriginalAttempts: true };
+        },
+        triage: groupCiInsights(jobs.map(x => x.diagnosis).filter(x => x.kind !== 'passed')).slice(0, 12).map(group => ({
+            kind: group.kind, fingerprint: group.fingerprint, occurrences: group.occurrences,
+            action: jobs.find(x => x.diagnosis.fingerprint === group.fingerprint)?.diagnosis.action
+                ?? 'Inspect incomplete job evidence before changing code.',
+        })),
+        retainsOriginalAttempts: true };
 }
 //# sourceMappingURL=github-diagnostics.js.map

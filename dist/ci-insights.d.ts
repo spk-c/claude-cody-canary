@@ -1,4 +1,4 @@
-export type CiFailureKind = 'runner-infrastructure' | 'lock-contention' | 'timeout' | 'assertion' | 'dependency' | 'unknown' | 'passed';
+export type CiFailureKind = 'runner-infrastructure' | 'lock-contention' | 'timeout' | 'assertion' | 'dependency' | 'permission' | 'cancelled-before-execution' | 'unknown' | 'passed';
 export interface CiInsight {
     schemaVersion: 1;
     kind: CiFailureKind;

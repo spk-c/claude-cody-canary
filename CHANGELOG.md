@@ -4,6 +4,10 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Correct historical GitHub Actions cancellation handling when `started_at` exists but no runner or step was assigned; include privacy-safe triage suggestions and fixed failed-stage classifications across attempts.
+- Classify token/permission CI log failures without printing raw secrets, and require exact pinned Git HEAD for provenance-checked replay when requested.
+- Return replay commit identity, reviewed scenario fingerprint and successful original-failure verification in sanitized minimization results.
+
 - Add reviewer-signed Ed25519 E2E fixtures with deterministic manifest hashing, pinned public-key verification and private fixture validation before chargeable CLI execution.
 - Gate paid CLI E2E on a signed fixture, trusted reviewer public key and explicit operator confirmation of provider-side billing controls (not an automatic spend-cap audit).
 - Add a manual-only, preview-first Claude/Codex/Qwen GitHub Actions workflow, with environment-scoped approval secret, credentials and per-provider install steps; no automatic paid CI or provider credentials committed.

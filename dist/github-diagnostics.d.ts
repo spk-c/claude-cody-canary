@@ -1,4 +1,4 @@
-import { type CiInsight } from './ci-insights.js';
+import { type CiInsight, type CiFailureKind } from './ci-insights.js';
 export interface GithubJobDiagnostic {
     id: number;
     name: string;
@@ -8,6 +8,8 @@ export interface GithubJobDiagnostic {
     runnerAssigned: boolean;
     started: boolean;
     diagnosis: CiInsight;
+    /** Inferred only from failed step name, not treated as root cause. */
+    failedStage: 'setup' | 'dependencies' | 'tests' | 'publishing' | 'authorization' | 'unknown' | null;
 }
 export interface GithubRunDiagnostic {
     schemaVersion: 1;
@@ -23,6 +25,13 @@ export interface GithubRunDiagnostic {
         cancelledBeforeStart: number;
         incomplete: number;
     };
+    /** Issue/PR triage suggestions contain only predefined safe categories, never log content. */
+    triage: Array<{
+        kind: CiFailureKind;
+        fingerprint: string;
+        occurrences: number;
+        action: string;
+    }>;
     /** Earlier attempts are always included; green reruns do not erase original failures. */
     retainsOriginalAttempts: true;
 }

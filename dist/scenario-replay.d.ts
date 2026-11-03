@@ -10,6 +10,14 @@ export interface ReplayScenario {
     verifyCommand: string;
     expectedExitCode: number;
     failureMarker?: string;
+    /** Optional immutable commit pin, validated before any reviewed shell command executes. */
+    expectedHeadSha?: string;
+}
+export interface ReplayProvenanceResult extends MinimizationResult<string> {
+    schemaVersion: 1;
+    headSha: string;
+    scenarioFingerprint: string;
+    originalFailureVerified: true;
 }
 export interface ReplayOptions {
     trusted: true;
@@ -22,5 +30,5 @@ export declare function minimizeDependentSteps(scenario: ReplayScenario, reprodu
 /** Trusted shell commands run in a fresh detached Git worktree per attempt.
  * Git worktrees are NOT an OS sandbox; only use reviewed, harmless fixture commands.
  */
-export declare function replayMinimizeScenario(input: ReplayScenario, options: ReplayOptions): Promise<MinimizationResult<string>>;
+export declare function replayMinimizeScenario(input: ReplayScenario, options: ReplayOptions): Promise<ReplayProvenanceResult>;
 //# sourceMappingURL=scenario-replay.d.ts.map
