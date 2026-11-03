@@ -159,7 +159,7 @@ describe('MCP negative HTTP classification',()=>{
         }});
         const result=await auditLiveMcp(contract,{trusted:true,negativeProbes:true,maxRequests:1});
         expect(result.findings.find(x=>x.reason===`http-${status}`)?.passed)
-          .toBe(status===400||status===422);
+          .toBe(false);
         expect(JSON.stringify(result)).not.toContain('credentials hidden');
       }finally{server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));}
     }

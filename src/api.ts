@@ -339,10 +339,14 @@ export type { AgentLongitudinalCohort, LongitudinalAnalysis, LongitudinalVerdict
 export { compareAgentCohorts } from './agent-compare.js';
 export type { AgentCohort, AgentComparison } from './agent-compare.js';
 export { probeMcpSubscriptions } from './mcp-subscriptions.js';
+export { probeMcpSubscriptionCycles } from './mcp-subscription-resilience.js';
+export type { McpSubscriptionCycleReport } from './mcp-subscription-resilience.js';
 export type { McpSubscriptionProbe } from './mcp-subscriptions.js';
 export { auditStdioNegativeFixture } from './mcp-stdio-negative.js';
 export type { StdioNegativeFinding, StdioNegativeReport } from './mcp-stdio-negative.js';
 export { prepareMcpMrtrRetry } from './mcp-mrtr.js';
+export { planApprovedMcpMrtrRounds } from './mcp-mrtr-plan.js';
+export type { MrtrOfflinePlan, MrtrRoundSummary } from './mcp-mrtr-plan.js';
 export { parseMcpSseResponse, classifyMcpResult } from './mcp-wire.js';
 export type { McpWireNotifications, McpSseResult } from './mcp-wire.js';
 export { agentReadOnlyArgs, runAgentTest } from './agent-runner.js';

@@ -113,6 +113,7 @@ if (suiteSubcommand === 'init') {
       '  dashboard <index> <html>    Generate an offline interactive history view\n' +
       '  ci run <owner> <repo> <id>   Read historical GitHub Actions attempt metadata\n' +
       '  mcp live <contract>         Trusted read-only MCP audit; --negative is loopback only\n' +
+      '  mcp listen-cycles <url>     Trusted bounded numeric-loopback subscription reconnection probe\n' +
       '  minimize replay <json>      Approved isolated scenario command replay\n' +
       '  agent run <agent> <file>    Approved read-only Claude/Codex/Qwen run\n' +
       '  agent e2e <fixture.json>   Paid runs require signed reviewer fixtures and billing review\n' +

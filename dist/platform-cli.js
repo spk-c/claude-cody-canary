@@ -13,6 +13,7 @@ import { loadMcpContract } from './mcp-contract.js';
 import { auditLiveMcp } from './mcp-live-audit.js';
 import { auditStdioNegativeFixture } from './mcp-stdio-negative.js';
 import { probeMcpSubscriptions } from './mcp-subscriptions.js';
+import { probeMcpSubscriptionCycles } from './mcp-subscription-resilience.js';
 import { runAgentTest } from './agent-runner.js';
 import { compareAgentCohorts } from './agent-compare.js';
 import { analyzeAgentLongitudinal } from './agent-longitudinal.js';
@@ -44,7 +45,7 @@ function integer(value, name) {
     return n;
 }
 export const PLATFORM_COMMANDS = [
-    ['ci', 'analyze'], ['ci', 'run'], ['mcp', 'conformance'], ['mcp', 'live'], ['mcp', 'stdio-negative'], ['mcp', 'listen'], ['minimize'], ['stats'], ['plugin', 'scan'],
+    ['ci', 'analyze'], ['ci', 'run'], ['mcp', 'conformance'], ['mcp', 'live'], ['mcp', 'stdio-negative'], ['mcp', 'listen'], ['mcp', 'listen-cycles'], ['minimize'], ['stats'], ['plugin', 'scan'],
     ['security', 'audit'], ['agent', 'doctor'], ['agent', 'run'], ['agent', 'compare'], ['agent', 'longitudinal'], ['agent', 'e2e'], ['agent', 'e2e-sign'], ['agent', 'e2e-verify'], ['agent', 'hash-answer'], ['smart', 'select'], ['dashboard'],
     ['history', 'sqlite-import'], ['history', 'sqlite-dashboard'], ['history', 'sqlite-trends'], ['history', 'sqlite-matrix'],
 ];
@@ -66,6 +67,11 @@ export async function runPlatformCommand(argv) {
     }
     else if (cmd === 'mcp' && sub === 'conformance')
         result = validateMcpEnvelopes(JSON.parse(await readBounded(required(rest[0], 'MCP JSON array'))));
+    else if (cmd === 'mcp' && sub === 'listen-cycles') {
+        if (!rest.includes('--trusted'))
+            throw new Error('Explicit --trusted required for MCP relisten tests.');
+        result = await probeMcpSubscriptionCycles(required(rest[0], 'numeric loopback endpoint'), { trusted: true });
+    }
     else if (cmd === 'mcp' && sub === 'listen') {
         if (!rest.includes('--trusted'))
             throw new Error('Explicit --trusted required for local subscriptions.');

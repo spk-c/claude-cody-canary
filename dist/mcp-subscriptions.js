@@ -8,6 +8,9 @@ export async function probeMcpSubscriptions(endpoint, options) {
         url.username || url.password || url.hash)
         throw new Error('Subscriptions require explicit numeric loopback HTTP endpoint.');
     const max = options.maxNotifications ?? 2, timeout = options.timeoutMs ?? 2000;
+    const subscriptionId = options.subscriptionId ?? 1;
+    if (!Number.isSafeInteger(subscriptionId) || subscriptionId < 1 || subscriptionId > 1_000_000_000)
+        throw new Error('Invalid MCP subscription request ID.');
     if (!Number.isSafeInteger(max) || max < 1 || max > 16 || !Number.isSafeInteger(timeout) || timeout < 100 || timeout > 10000)
         throw new Error('Invalid MCP subscriptions probe budget.');
     const abort = new AbortController();
@@ -15,7 +18,7 @@ export async function probeMcpSubscriptions(endpoint, options) {
     const timer = setTimeout(() => { deadlineExpired = true; abort.abort(); }, timeout);
     let acknowledged = false, notifications = 0, bytes = 0, events = 0, reason = 'ok';
     const body = {
-        jsonrpc: '2.0', id: 1, method: 'subscriptions/listen',
+        jsonrpc: '2.0', id: subscriptionId, method: 'subscriptions/listen',
         params: { _meta: { 'io.modelcontextprotocol/protocolVersion': '2026-07-28',
                 'io.modelcontextprotocol/clientCapabilities': {},
                 'io.modelcontextprotocol/clientInfo': { name: 'claude-code-canary', version: CANARY_VERSION } },
@@ -80,7 +83,7 @@ export async function probeMcpSubscriptions(endpoint, options) {
                     const meta = event.params && typeof event.params === 'object' && !Array.isArray(event.params)
                         ? event.params._meta : undefined;
                     if (!meta || typeof meta !== 'object' || Array.isArray(meta) ||
-                        meta['io.modelcontextprotocol/subscriptionId'] !== 1)
+                        meta['io.modelcontextprotocol/subscriptionId'] !== subscriptionId)
                         throw new Error('missing-subscription-id');
                     if (event.method === 'notifications/subscriptions/acknowledged' && !acknowledged) {
                         const params = event.params;

@@ -3,7 +3,7 @@ import { validateMcpEnvelopes } from './mcp-conformance.js';
 function loopback(url) {
     return url.hostname === '127.0.0.1' || url.hostname === '[::1]';
 }
-async function sendNegativeProbe(url, payload, options) {
+export async function sendNegativeProbe(url, payload, options) {
     const timeout = options.timeoutMs ?? 4000;
     const response = await (options.fetchImpl ?? fetch)(url, {
         method: 'POST',
@@ -13,13 +13,18 @@ async function sendNegativeProbe(url, payload, options) {
             'mcp-protocol-version': '2026-07-28', 'mcp-method': payload.method },
         body: JSON.stringify(payload),
     });
-    if (!response.ok) {
+    // A bare HTTP 400/422 is not JSON-RPC conformance evidence. Require a
+    // valid, correlated JSON-RPC error envelope even on rejected HTTP requests.
+    if (!response.ok && response.status !== 400 && response.status !== 422) {
         await response.body?.cancel().catch(() => undefined);
-        return { name: 'negative-envelope', passed: response.status === 400 || response.status === 422, reason: 'http-' + response.status };
+        return { name: 'negative-envelope', passed: false, reason: 'http-' + response.status };
     }
     const type = response.headers.get('content-type')?.toLowerCase() ?? '';
-    if (!type.startsWith('application/json'))
-        return { name: 'negative-envelope', passed: false, reason: 'unexpected-response-content-type' };
+    if (!type.startsWith('application/json')) {
+        await response.body?.cancel().catch(() => undefined);
+        return { name: 'negative-envelope', passed: false,
+            reason: response.ok ? 'unexpected-response-content-type' : 'http-' + response.status };
+    }
     if (Number(response.headers.get('content-length') ?? 0) > 65536)
         return { name: 'negative-envelope', passed: false, reason: 'oversized-response' };
     if (!response.body)
@@ -59,7 +64,11 @@ async function sendNegativeProbe(url, payload, options) {
             && Object.prototype.hasOwnProperty.call(envelope, 'error');
         const idMatches = typeof envelope === 'object' && envelope !== null && !Array.isArray(envelope)
             && Object.prototype.hasOwnProperty.call(envelope, 'id') && envelope.id === payload.id;
-        const passed = structural.valid && error && idMatches;
+        const errorCode = error && typeof envelope === 'object' && envelope !== null && !Array.isArray(envelope)
+            ? envelope.error : undefined;
+        const invalidRequest = typeof errorCode === 'object' && errorCode !== null && !Array.isArray(errorCode)
+            && errorCode.code === -32600;
+        const passed = structural.valid && error && idMatches && invalidRequest;
         return { name: 'negative-envelope', passed,
             reason: !idMatches ? 'mismatched-response-id' : passed ? 'rejected-by-server' : 'invalid-probe-response' };
     }

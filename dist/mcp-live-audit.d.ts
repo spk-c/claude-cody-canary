@@ -20,6 +20,10 @@ export interface LiveMcpOptions {
     timeoutMs?: number;
     fetchImpl?: typeof fetch;
 }
+export declare function sendNegativeProbe(url: URL, payload: {
+    id: number;
+    method: string;
+}, options: LiveMcpOptions): Promise<LiveMcpFinding>;
 /**
  * Acknowledged trusted-server audit. Positive checks use existing MCP inspector,
  * which does not call tools. Deliberately malformed messages are sent ONLY to

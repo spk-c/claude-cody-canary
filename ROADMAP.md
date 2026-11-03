@@ -97,7 +97,9 @@ The published v2.3.0 release includes bounded CI failure diagnostics, read-only 
 - [x] Best-effort legacy stdio cancellation on timeout; explicit local `subscriptions/listen` probe validates acknowledgement and closes stream after bounded events.
 - [x] Trusted local stdio malformed-envelope tests with no tool calls or inherited secrets; numeric-loopback-only HTTP negative probes.
 - [x] Offline MRTR input-required classification and an explicitly approved retry-envelope builder; never auto-answer prompts or call tools.
-- [ ] Full interactive MRTR orchestration with user approval UI, remote authenticated transport conformance, cross-SDK interoperability and long-running subscription resilience remain open.
+- [x] State-only MCP 2026 MRTR continuation, strict approved input-request methods and stale-state removal; offline multi-round approval/correlation trace.
+- [x] Bounded explicit local relisten cycles and strict correlated JSON-RPC error verification for HTTP negative probes.
+- [ ] Fully interactive MRTR approval UI, authenticated remote transport interoperability, multi-SDK conformance and long-lived subscription resilience remain open.
 
 ## v2.5 dashboard and agent quality — incremental development (Issue #43)
 

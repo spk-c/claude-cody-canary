@@ -65,8 +65,10 @@ export { runAgentE2e, hashE2eAnswer, parseE2eResponse, AgentE2eManifestSchema } 
 export { analyzeAgentLongitudinal, AgentLongitudinalSchema } from './agent-longitudinal.js';
 export { compareAgentCohorts } from './agent-compare.js';
 export { probeMcpSubscriptions } from './mcp-subscriptions.js';
+export { probeMcpSubscriptionCycles } from './mcp-subscription-resilience.js';
 export { auditStdioNegativeFixture } from './mcp-stdio-negative.js';
 export { prepareMcpMrtrRetry } from './mcp-mrtr.js';
+export { planApprovedMcpMrtrRounds } from './mcp-mrtr-plan.js';
 export { parseMcpSseResponse, classifyMcpResult } from './mcp-wire.js';
 export { agentReadOnlyArgs, runAgentTest } from './agent-runner.js';
 export { minimizeDependentSteps, replayMinimizeScenario, validateReplayScenario } from './scenario-replay.js';

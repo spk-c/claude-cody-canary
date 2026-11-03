@@ -11,6 +11,7 @@ export declare function probeMcpSubscriptions(endpoint: string, options: {
     trusted: true;
     maxNotifications?: number;
     timeoutMs?: number;
+    subscriptionId?: number;
     fetchImpl?: typeof fetch;
 }): Promise<McpSubscriptionProbe>;
 //# sourceMappingURL=mcp-subscriptions.d.ts.map
