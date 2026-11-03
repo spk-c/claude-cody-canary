@@ -23,7 +23,7 @@ Detect breaking changes between Claude Code releases, run repeatable scenarios i
 | **CI regression gates** | Run `compare`, `pr-check`, `baseline-check`, `suite` and `watch` with a composite GitHub Action. |
 | **Reproducible evidence** | Collect JSON, Markdown, HTML, JUnit and SARIF outputs, failure fingerprints and reproducible run metadata. |
 | **Security and trust checks** | Verify permission behavior, hooks and isolated fixtures with fail-closed validations; these are *not* OS sandboxing. |
-| **Large-suite tooling (v2.2.0)** | Shard merging, bounded DAG orchestration and a compact privacy-preserving history index are included in the published `v2.2.0` release and npm package. |
+| **Suite orchestration and history** | Verified shard merging, bounded dependency-aware DAG orchestration and compact privacy-preserving history indexing. |
 
 ## Start here: run an offline MCP check
 
@@ -72,7 +72,7 @@ npm run check
 node dist/v2-cli.js --help
 ~~~
 
-Version 2.3.0 retains the standalone commands `claude-canary-dag` and `claude-canary-history`. In a source checkout, use `npm run dag:run -- <manifest.yml>` and `npm run history:index -- .canary/results`. After npm installation, run `claude-canary-dag <manifest.yml>` and `claude-canary-history .canary/results`. See [DAG and history guide](docs/ORCHESTRATION_HISTORY.md) and [scaling guide](docs/SCALING.md).
+Version 2.4.0 includes the standalone commands `claude-canary-dag` and `claude-canary-history`. In a source checkout, use `npm run dag:run -- <manifest.yml>` and `npm run history:index -- .canary/results`. After npm installation, run `claude-canary-dag <manifest.yml>` and `claude-canary-history .canary/results`. See [DAG and history guide](docs/ORCHESTRATION_HISTORY.md) and [scaling guide](docs/SCALING.md).
 
 ## Verified examples, not mock screenshots
 
@@ -80,7 +80,7 @@ Recent [CI evidence with actual log excerpts](docs/CI_EVIDENCE.md) includes the 
 
 The separate [authenticated Claude Code E2E workflow](.github/workflows/live-claude-e2e.yml) requires an `ANTHROPIC_API_KEY` secret and manual dispatch from `main`. It is not a release gate and is not claimed to have passed merely because offline CI is green.
 
-## New platform capabilities in v2.3.0
+## Platform capabilities in v2.4.0
 
 Version 2.3.0 adds new offline CLI tools for CI diagnostics, MCP envelope conformance, delta debugging, security/plugin scans, statistical comparisons, safe test prioritization, agent discovery and an interactive local history dashboard. These shipped in **npm v2.3.0**. The expanded MCP, CI and agent tooling now ships in v2.4.0; see the [platform guide](docs/PLATFORM_NEXT.md) for scope, trust boundaries and examples.
 

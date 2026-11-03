@@ -1,10 +1,12 @@
 # npm publishing — existing claude-code-canary package
 
-**Current status (2026-11-02):** The original unscoped npm package [`claude-code-canary`](https://www.npmjs.com/package/claude-code-canary) has been updated to **2.2.0**, with npm maintainer **`slp-dev1`**. The [OIDC publish run 41495335373](https://github.com/spk-c/claude-cody-canary/actions/runs/41495335373) accepted `+ claude-code-canary@2.2.0` and published [signed provenance](https://search.sigstore.dev/?logIndex=3645881951). Its immediate final `npm view` failed while npm processed the package; a later public Registry API read and independent clean Windows installation **succeeded**, verifying CLI/API/DAG/History. **No second publish was performed.**
+**Historical v2.2.0 publish (2026-11-02):** The original unscoped npm package [`claude-code-canary`](https://www.npmjs.com/package/claude-code-canary) has been updated to **2.2.0**, with npm maintainer **`slp-dev1`**. The [OIDC publish run 41495335373](https://github.com/spk-c/claude-cody-canary/actions/runs/41495335373) accepted `+ claude-code-canary@2.2.0` and published [signed provenance](https://search.sigstore.dev/?logIndex=3645881951). Its immediate final `npm view` failed while npm processed the package; a later public Registry API read and independent clean Windows installation **succeeded**, verifying CLI/API/DAG/History. **No second publish was performed.**
 
 The repository keeps the **same package name**, `claude-code-canary`, with GitHub repository metadata pointing to `https://github.com/spk-c/claude-cody-canary`. It remains a clearly attributed independent source-restored MIT fork; updating npm metadata does not imply official Anthropic endorsement.
 
-## Trusted Publisher settings (established for v2.2.0)
+## Current publication and Trusted Publisher settings
+
+**Verified current version:** [`claude-code-canary@2.4.0`](https://www.npmjs.com/package/claude-code-canary/v/2.4.0) was published by the repository's OIDC Trusted Publishing workflow on 2026-11-03. The GitHub release, checksum and clean registry consumer passed independent verification. The 2.2.0 notes above are retained only as publishing history.
 
 1. Sign in at [npmjs.com](https://www.npmjs.com/) with **`slp-dev1`** (the current package owner) and enable account 2FA if not already enabled. This cannot be completed using GitHub permissions alone.
 2. Open [the package on npm](https://www.npmjs.com/package/claude-code-canary), choose **Settings → Trusted publishing → Add trusted publisher → GitHub Actions**.
@@ -22,20 +24,20 @@ After the first successful trusted publish, consider **Settings → Publishing a
 
 ## Publication order for future versions
 
-**v2.2.0 is already published on GitHub and npm. Do not attempt to republish the same immutable version.** For a new release:
+**v2.4.0 is published on GitHub and npm as of 2026-11-03. Do not republish an immutable version.** For a new release:
 
 1. Merge the changes to `main`, verify that all CI checks and the tagged release packaging tests are green.
-2. Publish the next **immutable GitHub Release (for example `v2.2.1`)** using [.github/workflows/release.yml](../.github/workflows/release.yml), from `main` with `version=<next-version>` and `confirmation=PUBLISH`. This creates the exact tarball and `SHA256SUMS` and checks its source and contents. Do not silently rewrite `v2.1.1` or an existing npm version.
+2. Publish the next **immutable GitHub Release (for example `v2.4.1`)** using [.github/workflows/release.yml](../.github/workflows/release.yml), from `main` with `version=<next-version>` and `confirmation=PUBLISH`. This creates the exact tarball and `SHA256SUMS` and checks its source and contents. Do not silently rewrite `v2.1.1` or an existing npm version.
 3. Once npm Trusted Publishing is configured for the exact workflow filename, use **[Publish npm (trusted OIDC)](../.github/workflows/npm-publish.yml)** from `main` with `version=<next-version>` and `confirmation=PUBLISH_NPM`.
 4. The npm workflow requires the published, non-draft GitHub Release, the exact corresponding Git tag, and a successful clean build and test of that tag. It compares the built tarball **byte-for-byte** with the previously published GitHub Release asset and verifies its checksum before calling `npm publish --provenance --access public` via GitHub OIDC.
 5. The workflow waits for npm registry propagation, then verifies the new npm version and installs it into a clean consumer, checking CLI, API, DAG and History utilities.
 
 If any validation fails, **npm publication must not happen**. A successful GitHub Release and a successful `npm pack` alone do **not** mean that npm was updated.
 
-Install the already published v2.2.0 release:
+Install the current published v2.4.0 release:
 
 ```sh
-npm install --global claude-code-canary@2.2.0
+npm install --global claude-code-canary@2.4.0
 claude-canary --version
 ```
 

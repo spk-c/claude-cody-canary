@@ -1,6 +1,6 @@
-# Platform features: v2.3.0 and unreleased hardening
+# Platform features: v2.3.0 and v2.4.0
 
-This document documents the platform capabilities added for **v2.3.0**. Earlier published releases, including immutable v2.2.0, do not contain these features.
+This guide describes platform capabilities introduced in **v2.3.0** and expanded in the **published v2.4.0** release. Historical v2.2.0 builds do not contain the newer platform features. Authenticated provider benchmarks and complete remote MCP interoperability are not claimed.
 
 ## Offline CLI, no API key required
 
@@ -11,7 +11,7 @@ node dist/v2-cli.js ci analyze path/to/ci.log
 node dist/v2-cli.js mcp conformance path/to/captured-envelopes.json
 node dist/v2-cli.js minimize steps.json 'failure marker'
 node dist/v2-cli.js stats 90 100 65 100
-# Unreleased: input JSON with id, baselinePasses, baselineRuns, candidatePasses, candidateRuns
+# v2.4.0: input JSON with id, baselinePasses, baselineRuns, candidatePasses, candidateRuns
 node dist/v2-cli.js stats family ./comparisons.json
 node dist/v2-cli.js plugin scan ./my-plugin
 node dist/v2-cli.js security audit .claude/settings.json
@@ -24,14 +24,14 @@ node dist/v2-cli.js dashboard .canary/results/history-index.json .canary/results
 ### Scope and boundaries
 
 - **CI analysis** uses fixed signal codes, fingerprint grouping and recommended next actions. It does not send logs to a service or emit raw lines; it is a diagnostic heuristic, not proof of root cause.
-- **MCP conformance** validates offline JSON-RPC envelopes and includes bounded, explicitly trusted live discovery plus optional malformed-envelope probes against numeric loopback HTTP endpoints. It never calls `tools/call`. This is not full MCP conformance; remote active fuzzing, SSE, generic MRTR and notifications/cancellation remain unsupported.
+- **MCP conformance** validates offline JSON-RPC envelopes and includes bounded, explicitly trusted live discovery plus optional malformed-envelope probes against numeric loopback HTTP endpoints. It never calls `tools/call`. This is not full MCP conformance: request-scoped SSE, bounded local subscriptions, cancellation signaling and approved offline MRTR envelopes are supported in v2.4.0, but authenticated remote fuzzing and a full interactive multi-round MCP client remain out of scope.
 - **Regression minimization** is a bounded, predicate-driven delta debugger. Its CLI reduces a JSON string array by preserving a literal failure marker. Complex Claude scenario dependencies and environment state are not automatically minimized.
 - **Statistics** uses Wilson confidence intervals and conservative nonoverlap for pass/fail rates. Small samples are explicitly marked insufficient; this is not a formal replacement for experimental design.
 - **Plugin scanning** reuses existing symlink-safe plugin discovery without launching plugins; findings are structural recommendations, not runtime proof.
 - **Security audit** checks broad permission rules and simple risky hook patterns in static settings JSON. It does not execute hooks or audit all possible shell syntaxes.
 - **Agent adapters** discover Claude, Codex and Qwen, and can execute reviewed read-only, one-shot commands only with explicit `--trusted`. Output metrics are provider-specific and not universally comparable; full cross-provider benchmarks remain future work.
 - **Smart selection** ranks matching, always-run and unmapped cases; it never silently drops cases with no affects mapping. Its CLI expects a JSON list of `{name, affects, failureCount?, alwaysRun?, lastDurationMs?}`.
-- **History dashboard** writes standalone privacy-preserving HTML and optionally imports sanitized history into local SQLite (Node 22.5+). It uses no hosted service; rich time-series comparisons, live updates and interactive editing remain future work.
+- **History dashboard** writes standalone privacy-preserving HTML and optionally imports sanitized history into local SQLite (Node 22.5+). It uses no hosted service; daily trends, dimension filtering and confidence summaries are available in v2.4.0; hosted synchronization and interactive editing remain future work.
 
 ### Security
 
@@ -42,20 +42,20 @@ Review input files. Commands accept local files (bounded by size), do not launch
 1. Expand bounded live MCP checks beyond read-only discovery and local negative HTTP probes, with explicit session/cancellation/notification coverage and verified MRTR states.
 2. Improve real GitHub CI failure diagnosis beyond existing attempt/job provenance and privacy-safe error categories.
 3. Extend trusted worktree replay into a broader fixture coverage matrix without assuming it is an OS sandbox.
-4. Expand existing SQLite history dashboards with confidence intervals, local time-series and richer performance analysis.
+4. Extend existing offline SQLite dashboards beyond the released daily trends, dimension filters and confidence summaries with deeper long-term analyses.
 5. Verify Claude, Qwen and Codex adapter parity and telemetry contracts across provider versions without persisting prompts or raw outputs.
 
 These are not represented as completed until actual integration tests pass.
 
 ## Extended integrated features
 
-The following integrated CLI commands are available in v2.3.0:
+The following integrated CLI commands are available in v2.4.0:
 
 ```sh
 claude-canary ci run spk-c claude-cody-canary 41522087038
 claude-canary mcp live ./trusted.mcp.yml --trusted
 claude-canary mcp live ./local.mcp.yml --trusted --negative
-# Unreleased roadmap extensions (not in npm v2.3.0):
+# Extended commands shipped in npm v2.4.0:
 claude-canary mcp stdio-negative C:/fixtures/reviewed.cjs --trusted
 claude-canary mcp listen http://127.0.0.1:3000/mcp --trusted
 claude-canary agent compare ./baseline-cohort.json ./candidate-cohort.json
@@ -64,14 +64,14 @@ claude-canary minimize replay ./trusted-replay.json --trusted
 claude-canary suite ./release.suite.yml --priority-history ./priorities.json
 claude-canary history sqlite-import .canary/results/history-index.json .canary/results/history.sqlite
 claude-canary history sqlite-trends .canary/results/history.sqlite
-# Unreleased: group by version, OS and plugin
+# v2.4.0: group by version, OS and plugin
 claude-canary history sqlite-matrix .canary/results/history.sqlite
 claude-canary history sqlite-dashboard .canary/results/history.sqlite ./dashboard.html
 ```
 
 **GitHub Actions diagnostics** retrieve metadata across attempts, not raw logs. A public repository can be inspected without credentials; private repositories can use `--token-env GITHUB_TOKEN` with a least-privilege environment variable. Original failed attempts remain in results after successful retries.
 
-**Live MCP** always requires a reviewed contract and explicit `--trusted` acknowledgement. Its normal checks use existing read-only discovery, never `tools/call`. Negative/malformed request tests use a maximum of three requests and can run only against numeric loopback HTTP endpoints. No redirect following or credential forwarding; an OS network sandbox is not supplied. **Unreleased v2.4 hardening:** live discovery is capped at 24 total requests and 30 seconds across all pages/transports; responses to negative probes must match the originating JSON-RPC ID, timeout options are validated before connecting, and URL fragments are rejected.
+**Live MCP** always requires a reviewed contract and explicit `--trusted` acknowledgement. Its normal checks use existing read-only discovery, never `tools/call`. Negative/malformed request tests use a maximum of three requests and can run only against numeric loopback HTTP endpoints. No redirect following or credential forwarding; an OS network sandbox is not supplied. **v2.4.0 hardening:** live discovery is capped at 24 total requests and 30 seconds across all pages/transports; responses to negative probes must match the originating JSON-RPC ID, timeout options are validated before connecting, and URL fragments are rejected.
 
 **Agent execution** requires explicit `--trusted`, a prompt file, and runs Claude in plan mode, Codex in a read-only sandbox, or Qwen in plan mode. Agents may still make provider API calls/costs. Raw prompt/output, credentials and transcripts are not retained in results. Provider-specific metrics are emitted only when recognized. Native read-only modes are not substitutes for running within a real OS sandbox when testing untrusted extensions.
 
@@ -81,9 +81,9 @@ claude-canary history sqlite-dashboard .canary/results/history.sqlite ./dashboar
 
 **Persistent history** uses Node.js built-in SQLite on **Node 22.5+**; Canary's other CLI commands still support Node.js 20. It stores only sanitized run/suite/watch summaries from the existing history index with idempotent imports and bounded retention. It refuses a symlink database. No hosted service or model subscription is required.
 
-**Unreleased development extensions:** Streamable HTTP now consumes bounded request-scoped SSE event streams and validates notification/event correlation. MCP 2026-07-28 is stateless: it does **not** use the 2025 `Mcp-Session-Id` handshake; supported legacy stdio still initializes and checks negotiated versions. On stdio timeouts Canary sends a best-effort `notifications/cancelled` before terminating the process. The opt-in `mcp listen` command tests only numeric-loopback `subscriptions/listen`, requires an acknowledgement, and disconnects after one notification or a short timeout; it does not test remote subscription resilience. The opt-in `mcp stdio-negative` only launches a reviewed local `.cjs` test fixture under Node, without inherited process secrets, with three negative envelopes. The offline MRTR helper can construct a manually approved next-round request but never sends it, elicits input, or calls tools automatically.
+**v2.4.0 development extensions:** Streamable HTTP now consumes bounded request-scoped SSE event streams and validates notification/event correlation. MCP 2026-07-28 is stateless: it does **not** use the 2025 `Mcp-Session-Id` handshake; supported legacy stdio still initializes and checks negotiated versions. On stdio timeouts Canary sends a best-effort `notifications/cancelled` before terminating the process. The opt-in `mcp listen` command tests only numeric-loopback `subscriptions/listen` with bounded notifications and a short timeout; `mcp listen-cycles` exercises three independently correlated local subscription cycles. Remote authenticated subscription resilience is not verified. The opt-in `mcp stdio-negative` only launches a reviewed local `.cjs` test fixture under Node, without inherited process secrets, with three negative envelopes. The offline MRTR helper can construct a manually approved next-round request but never sends it, elicits input, or calls tools automatically.
 
-**Unreleased local analytics:** Offline dashboard includes up to 90 daily trend bars, failure grouping and Wilson intervals (only observed outcomes). `agent compare` requires versioned, strict cohort JSON with identical per-scenario SHA-256 hashes and uses conservative pass-rate intervals; token and cost metrics are marked not comparable for different providers. No live paid-model E2E benchmark or cross-provider price equivalence is implied. Further version × plugin × OS breakdown requires an expanded history schema, and interactive MRTR orchestration remains intentionally disabled for read-only audits.
+**v2.4.0 local analytics:** Offline dashboard includes up to 90 daily trend bars, failure grouping and Wilson intervals (only observed outcomes). `agent compare` requires versioned, strict cohort JSON with identical per-scenario SHA-256 hashes and uses conservative pass-rate intervals; token and cost metrics are marked not comparable for different providers. No live paid-model E2E benchmark or cross-provider price equivalence is implied. The v2.4.0 history schema already supports version, plugin and OS breakdowns; cross-provider matched-experiment validation and interactive MRTR orchestration are still intentionally restricted.
 
 Full automated model-backed production performance benchmarking, multi-provider token normalization, remote MCP protocol-fuzz coverage and a full generic multi-round-trip MCP client are out of scope here; do not claim those as complete conformance certifications.
 
@@ -97,13 +97,13 @@ checks from completing. Rather than permanently remove ARM testing, a separate
 on a weekly schedule and supports manual dispatch. This **does not count as
 an ARM release gate**, and ARM failures must be investigated rather than hidden.
 
-### Unreleased history matrix
+### v2.4.0 history matrix
 
 SQLite schema v2 migrates existing v1 databases while preserving stored rows and IDs. Only validated version, OS and plugin identifiers are accepted. Older rows display as unknown. The dashboard shows dimension filters, and `history sqlite-matrix` aggregates the retained database. Results are descriptive, not matched experimental comparisons.
 
 `stats family ./comparisons.json` accepts an array of `id`, `baselinePasses`, `baselineRuns`, `candidatePasses`, `candidateRuns` records. It applies a conservative family-wise correction, with insufficient-data results for small samples.
 
-### Unreleased: reproducible paired agent measurements
+### v2.4.0: reproducible paired agent measurements
 
 Run `claude-canary agent longitudinal baseline.json candidate.json --family-size 1` to compare approved offline cohorts of Claude, Codex or Qwen. The comparison never launches a model.
 
@@ -111,7 +111,7 @@ Each JSON cohort contains `schemaVersion:1`, `agent`, `version`, `experiment`, a
 
 Canary requires the same experiment fingerprints and one-to-one scenario/repetition keys in both cohorts. Missing runs or infrastructure errors produce `not-comparable`, not model failures. Each unique scenario contributes one direction to a two-sided exact sign test, irrespective of repeated measurements; at least 10 independent scenarios with differing mean pass rates are required to report a statistical change. Use `--family-size N` to set the declared number of comparisons for a Bonferroni correction. Cross-provider token/cost metrics remain incomparable. Pass/fail evidence must be independently verified by the author of the cohort; the stored hash is not proof that a test was valid. No prompts, responses, credentials, or raw logs are accepted.
 
-### Unreleased: opt-in verified provider E2E harness
+### v2.4.0: opt-in verified provider E2E harness
 
 `claude-canary agent hash-answer answer.txt` prints the SHA-256 fingerprint of the locally stored expected answer; the text itself is not printed. The same normalization is used when checking model output (trim surrounding whitespace, CRLF to LF, Unicode NFC).
 
@@ -123,7 +123,7 @@ The verifier accepts Claude JSON `result`, Qwen JSON `response` or `result`, and
 
 **Cost limitation:** `maxReportedCostUsd` is a retrospective stopping threshold based on amounts disclosed by the CLI, *not* a guaranteed provider-side spending cap. One request can exceed the threshold before its cost is known. Provider cost telemetry may be unavailable (notably for Codex); in that case Canary stops before additional requests. `reserveUsdPerRun` only reserves room in the local ledger before starting another request, and cannot guarantee actual spend. Limits on run count, subprocess duration and output size reduce risk but do not replace a provider billing limit or independent operating-system sandbox. Review provider credentials and billing limits before opt-in execution.
 
-### Reviewer-signed fixtures and provider-side billing review (unreleased)
+### Reviewer-signed fixtures and provider-side billing review (v2.4.0)
 
 **Preview without provider calls**: `claude-canary agent e2e ./manifest.json`.
 

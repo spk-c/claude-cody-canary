@@ -3,3 +3,17 @@ node_modules/
 coverage/
 *.log
 .DS_Store
+
+# Local credentials and environment configuration; keep public examples.
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Editor state and temporary artifacts (including SentinelX edit backups).
+.vscode/
+.idea/
+*.swp
+*.bak.*
+*.tmp
+*.tsbuildinfo
