@@ -4,6 +4,9 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Add offline `agent longitudinal` comparisons with strictly matched scenario/replicate identities, environment fingerprints, independent-scenario exact sign tests and family-wise significance limits.
+- Keep incomplete infrastructure runs and mismatched experiment populations out of quality claims. Preserve missing cross-provider token/cost comparability and never emit prompts or raw outputs.
+
 - Migrate optional local SQLite history from schema v1 to v2 while preserving existing rows and IDs. Store only validated version, OS and plugin identifiers when supplied.
 - Add offline dashboard dimension filters and `history sqlite-matrix` with explicit unknown metadata handling.
 - Add conservative family-wise correction for bounded pass-rate comparisons through `stats family`.

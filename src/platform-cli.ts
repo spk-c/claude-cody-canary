@@ -15,6 +15,7 @@ import { auditStdioNegativeFixture } from './mcp-stdio-negative.js';
 import { probeMcpSubscriptions } from './mcp-subscriptions.js';
 import { runAgentTest } from './agent-runner.js';
 import { compareAgentCohorts } from './agent-compare.js';
+import { analyzeAgentLongitudinal } from './agent-longitudinal.js';
 import { replayMinimizeScenario, type ReplayScenario } from './scenario-replay.js';
 import { importHistorySqlite, queryHistoryTrends, queryHistoryMatrixSqlite, renderStoredHistory } from './history-sqlite.js';
 import { writeFile } from 'node:fs/promises';
@@ -38,7 +39,7 @@ function integer(value:string|undefined,name:string):number {
 }
 export const PLATFORM_COMMANDS=[
   ['ci','analyze'],['ci','run'],['mcp','conformance'],['mcp','live'],['mcp','stdio-negative'],['mcp','listen'],['minimize'],['stats'],['plugin','scan'],
-  ['security','audit'],['agent','doctor'],['agent','run'],['agent','compare'],['smart','select'],['dashboard'],
+  ['security','audit'],['agent','doctor'],['agent','run'],['agent','compare'],['agent','longitudinal'],['smart','select'],['dashboard'],
   ['history','sqlite-import'],['history','sqlite-dashboard'],['history','sqlite-trends'],['history','sqlite-matrix'],
 ] as const;
 export function isPlatformCommand(argv:string[]):boolean {
@@ -88,6 +89,13 @@ export async function runPlatformCommand(argv:string[]):Promise<void>{
   else if(cmd==='plugin'&&sub==='scan')result=await auditPluginDirectory(required(rest[0],'plugin directory'));
   else if(cmd==='security'&&sub==='audit')result=auditClaudeSettings(JSON.parse(await readBounded(required(rest[0],'settings JSON'))));
   else if(cmd==='agent'&&sub==='doctor')result=await discoverAgentAdapters(process.cwd());
+  else if(cmd==='agent'&&sub==='longitudinal'){
+    const flag=rest.indexOf('--family-size');
+    const familySize=flag===-1?1:integer(rest[flag+1],'family size');
+    result=analyzeAgentLongitudinal(
+      JSON.parse(await readBounded(required(rest[0],'baseline longitudinal JSON'))),
+      JSON.parse(await readBounded(required(rest[1],'candidate longitudinal JSON'))),{familySize});
+  }
   else if(cmd==='agent'&&sub==='compare'){
     result=compareAgentCohorts(JSON.parse(await readBounded(required(rest[0],'baseline cohort'))),
       JSON.parse(await readBounded(required(rest[1],'candidate cohort'))));

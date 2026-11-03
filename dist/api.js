@@ -60,6 +60,7 @@ export { historyDimensions, safeHistoryDimension, summarizeHistoryMatrix } from 
 export { summarizeHistory } from './history-insights.js';
 export { analyzeGithubRun } from './github-diagnostics.js';
 export { auditLiveMcp } from './mcp-live-audit.js';
+export { analyzeAgentLongitudinal, AgentLongitudinalSchema } from './agent-longitudinal.js';
 export { compareAgentCohorts } from './agent-compare.js';
 export { probeMcpSubscriptions } from './mcp-subscriptions.js';
 export { auditStdioNegativeFixture } from './mcp-stdio-negative.js';

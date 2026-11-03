@@ -102,3 +102,11 @@ an ARM release gate**, and ARM failures must be investigated rather than hidden.
 SQLite schema v2 migrates existing v1 databases while preserving stored rows and IDs. Only validated version, OS and plugin identifiers are accepted. Older rows display as unknown. The dashboard shows dimension filters, and `history sqlite-matrix` aggregates the retained database. Results are descriptive, not matched experimental comparisons.
 
 `stats family ./comparisons.json` accepts an array of `id`, `baselinePasses`, `baselineRuns`, `candidatePasses`, `candidateRuns` records. It applies a conservative family-wise correction, with insufficient-data results for small samples.
+
+### Unreleased: reproducible paired agent measurements
+
+Run `claude-canary agent longitudinal baseline.json candidate.json --family-size 1` to compare approved offline cohorts of Claude, Codex or Qwen. The comparison never launches a model.
+
+Each JSON cohort contains `schemaVersion:1`, `agent`, `version`, `experiment`, and `runs`. The experiment requires SHA-256 fingerprints for `suiteHash`, `configurationHash`, `hardwareHash`, and an exact `platform` (`win32`, `linux` or `darwin`). Each run provides a SHA-256 `scenarioHash`, numeric `replicate`, `recordedAt` (ISO timestamp), `outcome` (`passed`, `failed` or `infrastructure`), and `durationMs`. Optional `totalTokens` and `reportedCostUsd` describe provider-reported measurements, not standardized prices.
+
+Canary requires the same experiment fingerprints and one-to-one scenario/repetition keys in both cohorts. Missing runs or infrastructure errors produce `not-comparable`, not model failures. Each unique scenario contributes one direction to a two-sided exact sign test, irrespective of repeated measurements; at least 10 independent scenarios with differing mean pass rates are required to report a statistical change. Use `--family-size N` to set the declared number of comparisons for a Bonferroni correction. Cross-provider token/cost metrics remain incomparable. Pass/fail evidence must be independently verified by the author of the cohort; the stored hash is not proof that a test was valid. No prompts, responses, credentials, or raw logs are accepted.
