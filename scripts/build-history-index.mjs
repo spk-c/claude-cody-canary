@@ -7,19 +7,29 @@ import { pathToFileURL } from 'node:url';
 const MAX_FILES=5000, MAX_FILE_BYTES=4*1024*1024;
 function safeTime(value){return typeof value==='string'&&!Number.isNaN(Date.parse(value))?new Date(value).toISOString():null;}
 function safeHash(value){return typeof value==='string'&&/^[a-f0-9]{40}$/.test(value)?value:undefined;}
+function safeDimension(field,value){
+  if(typeof value!=='string')return undefined;
+  if(field==='platform')return ['win32','linux','darwin'].includes(value)?value:undefined;
+  if(field==='version')return value.length<=50&&/^v?[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}(?:-[a-zA-Z0-9.-]{1,24})?$/.test(value)?value:undefined;
+  return value.length<=80&&/^(?:@?[a-zA-Z0-9][a-zA-Z0-9._-]{0,39}\/)?[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/.test(value)?value:undefined;
+}
 export function summarizeHistoryArtifact(value){
   if(!value||typeof value!=='object'||Array.isArray(value)||value.schemaVersion!==1)return null;
   const createdAt=safeTime(value.createdAt);
   if(!createdAt)return null;
+  const version=safeDimension('version',value.claudeVersion??value.claudeCodeVersion);
+  const platform=safeDimension('platform',value.platform);
+  const plugin=safeDimension('plugin',value.pluginName);
+  const dimensions={...(version?{version}:{}),...(platform?{platform}:{}),...(plugin?{plugin}:{})};
   if(typeof value.suite==='string'&&Array.isArray(value.scenarios)){
     const total=value.scenarios.length,failed=value.scenarios.filter(x=>!x.passed).length;
-    return {kind:'suite',createdAt,total,failed,passed:total-failed};
+    return {kind:'suite',createdAt,total,failed,passed:failed===0&&total>0,...dimensions};
   }
   if(typeof value.status==='string'&&typeof value.latest==='string'&&Array.isArray(value.unseen)){
-    return {kind:'release-watch',createdAt,status:['initialized','no-change','new-release','compatible','regression','infrastructure-error'].includes(value.status)?value.status:'unknown'};
+    return {kind:'release-watch',createdAt,status:['initialized','no-change','new-release','compatible','regression','infrastructure-error'].includes(value.status)?value.status:'unknown',...dimensions};
   }
   if(typeof value.scenario==='string'&&typeof value.passed==='boolean'){
-    return {kind:'run',createdAt,passed:value.passed,gitCommit:safeHash(value.gitCommit)};
+    return {kind:'run',createdAt,passed:value.passed,gitCommit:safeHash(value.gitCommit),...dimensions};
   }
   return null;
 }
@@ -41,7 +51,7 @@ export async function indexHistoryDirectory(root,output){
   for(const item of items){
     const file=join(abs,item.name);
     if((await stat(file)).size>MAX_FILE_BYTES)throw new Error('History artifact exceeds 4 MiB.');
-    const raw=JSON.parse(await readFile(file,'utf8'));
+    const raw=JSON.parse((await readFile(file,'utf8')).replace(/^\uFEFF/, ''));
     const summary=summarizeHistoryArtifact(raw);
     if(summary)records.push(summary);
   }

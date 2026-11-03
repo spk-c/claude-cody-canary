@@ -330,6 +330,7 @@ export async function runSuite(suitePath, options = {}) {
         suite: suite.name,
         suitePath: normalizeRelative(path.relative(cwd, absoluteSuitePath)),
         createdAt: new Date().toISOString(),
+        platform: process.platform,
         passed: failedCount === 0 && completed.length === resolved.length,
         total: completed.length,
         discoveredTotal: selection.discovered.length,

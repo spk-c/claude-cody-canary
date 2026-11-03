@@ -2,7 +2,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { analyzeCiLog } from './ci-insights.js';
 import { validateMcpEnvelopes } from './mcp-conformance.js';
 import { minimizeFailure } from './minimize.js';
-import { comparePassRates } from './statistical-regressions.js';
+import { comparePassRates, comparePassRateFamily, type FamilyRateCase } from './statistical-regressions.js';
 import { auditPluginDirectory } from './plugin-audit.js';
 import { auditClaudeSettings } from './security-audit.js';
 import { discoverAgentAdapters } from './agent-adapters.js';
@@ -16,14 +16,14 @@ import { probeMcpSubscriptions } from './mcp-subscriptions.js';
 import { runAgentTest } from './agent-runner.js';
 import { compareAgentCohorts } from './agent-compare.js';
 import { replayMinimizeScenario, type ReplayScenario } from './scenario-replay.js';
-import { importHistorySqlite, queryHistoryTrends, renderStoredHistory } from './history-sqlite.js';
+import { importHistorySqlite, queryHistoryTrends, queryHistoryMatrixSqlite, renderStoredHistory } from './history-sqlite.js';
 import { writeFile } from 'node:fs/promises';
 
 async function readBounded(file:string,maxBytes=4*1024*1024):Promise<string> {
   if(!file||file.startsWith('-'))throw new Error('Expected a file path.');
   const size=(await stat(file)).size;
   if(size>maxBytes)throw new Error('Input file is too large.');
-  return readFile(file,'utf8');
+  return (await readFile(file,'utf8')).replace(/^\uFEFF/, '');
 }
 function required(value:string|undefined,name:string):string {
   if(!value||value.startsWith('--'))throw new Error('Missing '+name+'.');
@@ -39,7 +39,7 @@ function integer(value:string|undefined,name:string):number {
 export const PLATFORM_COMMANDS=[
   ['ci','analyze'],['ci','run'],['mcp','conformance'],['mcp','live'],['mcp','stdio-negative'],['mcp','listen'],['minimize'],['stats'],['plugin','scan'],
   ['security','audit'],['agent','doctor'],['agent','run'],['agent','compare'],['smart','select'],['dashboard'],
-  ['history','sqlite-import'],['history','sqlite-dashboard'],['history','sqlite-trends'],
+  ['history','sqlite-import'],['history','sqlite-dashboard'],['history','sqlite-trends'],['history','sqlite-matrix'],
 ] as const;
 export function isPlatformCommand(argv:string[]):boolean {
   return PLATFORM_COMMANDS.some(x=>x.length===1?argv[0]===x[0]:argv[0]===x[0]&&argv[1]===x[1]);
@@ -81,6 +81,9 @@ export async function runPlatformCommand(argv:string[]):Promise<void>{
     const match=required(rest[0],'literal failure marker');
     if(!Array.isArray(items)||items.some(x=>typeof x!=='string'))throw new Error('Minimizer expects an array of strings.');
     result=await minimizeFailure(items as string[],async candidate=>candidate.some(x=>x.includes(match)));
+  } else if(cmd==='stats'&&sub==='family'){
+    const cases=JSON.parse(await readBounded(required(rest[0],'comparison JSON array'))) as FamilyRateCase[];
+    result=comparePassRateFamily(cases);
   } else if(cmd==='stats')result=comparePassRates(integer(sub,'baseline passes'),integer(rest[0],'baseline runs'),integer(rest[1],'candidate passes'),integer(rest[2],'candidate runs'));
   else if(cmd==='plugin'&&sub==='scan')result=await auditPluginDirectory(required(rest[0],'plugin directory'));
   else if(cmd==='security'&&sub==='audit')result=auditClaudeSettings(JSON.parse(await readBounded(required(rest[0],'settings JSON'))));
@@ -105,6 +108,8 @@ export async function runPlatformCommand(argv:string[]):Promise<void>{
     result=await importHistorySqlite(required(rest[0],'history-index.json'),required(rest[1],'database.sqlite'));
   } else if(cmd==='history'&&sub==='sqlite-trends'){
     result=await queryHistoryTrends(required(rest[0],'database.sqlite'));
+  } else if(cmd==='history'&&sub==='sqlite-matrix'){
+    result=await queryHistoryMatrixSqlite(required(rest[0],'database.sqlite'));
   } else if(cmd==='history'&&sub==='sqlite-dashboard'){
     const html=await renderStoredHistory(required(rest[0],'database.sqlite'));
     const output=required(rest[1],'output HTML');

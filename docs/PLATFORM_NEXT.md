@@ -11,6 +11,8 @@ node dist/v2-cli.js ci analyze path/to/ci.log
 node dist/v2-cli.js mcp conformance path/to/captured-envelopes.json
 node dist/v2-cli.js minimize steps.json 'failure marker'
 node dist/v2-cli.js stats 90 100 65 100
+# Unreleased: input JSON with id, baselinePasses, baselineRuns, candidatePasses, candidateRuns
+node dist/v2-cli.js stats family ./comparisons.json
 node dist/v2-cli.js plugin scan ./my-plugin
 node dist/v2-cli.js security audit .claude/settings.json
 node dist/v2-cli.js agent doctor
@@ -62,6 +64,8 @@ claude-canary minimize replay ./trusted-replay.json --trusted
 claude-canary suite ./release.suite.yml --priority-history ./priorities.json
 claude-canary history sqlite-import .canary/results/history-index.json .canary/results/history.sqlite
 claude-canary history sqlite-trends .canary/results/history.sqlite
+# Unreleased: group by version, OS and plugin
+claude-canary history sqlite-matrix .canary/results/history.sqlite
 claude-canary history sqlite-dashboard .canary/results/history.sqlite ./dashboard.html
 ```
 
@@ -92,3 +96,9 @@ checks from completing. Rather than permanently remove ARM testing, a separate
 `macOS Apple Silicon compatibility` workflow runs macOS 15 ARM on Node 20/22
 on a weekly schedule and supports manual dispatch. This **does not count as
 an ARM release gate**, and ARM failures must be investigated rather than hidden.
+
+### Unreleased history matrix
+
+SQLite schema v2 migrates existing v1 databases while preserving stored rows and IDs. Only validated version, OS and plugin identifiers are accepted. Older rows display as unknown. The dashboard shows dimension filters, and `history sqlite-matrix` aggregates the retained database. Results are descriptive, not matched experimental comparisons.
+
+`stats family ./comparisons.json` accepts an array of `id`, `baselinePasses`, `baselineRuns`, `candidatePasses`, `candidateRuns` records. It applies a conservative family-wise correction, with insufficient-data results for small samples.

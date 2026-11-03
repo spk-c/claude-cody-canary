@@ -15,4 +15,30 @@ export function comparePassRates(baselinePasses, baselineRuns, candidatePasses, 
         candidate.high < baseline.low ? 'regression' : candidate.low > baseline.high ? 'improvement' : 'inconclusive';
     return { verdict, baseline, candidate, minimumSampleSize };
 }
+/** Conservative family-wise correction using a Gaussian Chernoff bound.
+ * Avoids labeling noisy multiple comparisons as regressions.
+ */
+export function comparePassRateFamily(cases, alpha = 0.05, minimumSampleSize = 10) {
+    if (!Array.isArray(cases) || cases.length < 1 || cases.length > 100 ||
+        !Number.isFinite(alpha) || alpha < 0.001 || alpha > 0.2 ||
+        !Number.isSafeInteger(minimumSampleSize) || minimumSampleSize < 2 || minimumSampleSize > 100000)
+        throw new Error('Invalid statistical family budget.');
+    const seen = new Set();
+    for (const item of cases) {
+        if (!item || typeof item.id !== 'string' || !/^[a-zA-Z0-9_.-]{1,64}$/.test(item.id) || seen.has(item.id))
+            throw new Error('Invalid or duplicate comparison identifier.');
+        seen.add(item.id);
+    }
+    // A single family has 2*k two-sided intervals.
+    // Gaussian tail <= exp(-z*z/2), so this bound is deliberately conservative.
+    const z = Math.sqrt(2 * Math.log(4 * cases.length / alpha));
+    const comparisons = cases.map(item => {
+        const baseline = wilsonPassRate(item.baselinePasses, item.baselineRuns, z);
+        const candidate = wilsonPassRate(item.candidatePasses, item.candidateRuns, z);
+        const verdict = item.baselineRuns < minimumSampleSize || item.candidateRuns < minimumSampleSize ? 'insufficient-data' :
+            candidate.high < baseline.low ? 'regression' : candidate.low > baseline.high ? 'improvement' : 'inconclusive';
+        return { id: item.id, decision: { verdict, baseline, candidate, minimumSampleSize } };
+    });
+    return { schemaVersion: 1, familyWiseAlpha: alpha, criticalZ: z, comparisons };
+}
 //# sourceMappingURL=statistical-regressions.js.map

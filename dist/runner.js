@@ -171,6 +171,7 @@ export async function runScenario(scenario, options = {}) {
             metrics,
             createdAt: new Date().toISOString(),
             gitCommit,
+            platform: process.platform,
         };
         result.artifactPath = await writeArtifact(repoRoot, result, options.artifactLabel);
         return result;

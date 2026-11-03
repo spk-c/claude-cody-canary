@@ -4,6 +4,9 @@ export interface HistoryDashboardRecord {
     passed?: boolean;
     failed?: number;
     status?: string;
+    version?: string;
+    platform?: string;
+    plugin?: string;
 }
 export interface HistoryDashboardInput {
     schemaVersion: 1;

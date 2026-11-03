@@ -75,6 +75,7 @@ export interface SuiteRunResult {
     suite: string;
     suitePath: string;
     createdAt: string;
+    platform?: NodeJS.Platform;
     passed: boolean;
     total: number;
     discoveredTotal: number;

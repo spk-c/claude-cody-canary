@@ -51,3 +51,31 @@ test('history indexes existing files without reading arbitrary media',async t=>{
   assert.equal(first.entries,1);
   assert.equal((JSON.parse(await readFile(out,'utf8'))).counts.runs,1);
 });
+
+test('history index allows whitelisted version OS and plugin metadata but drops arbitrary sensitive strings',()=>{
+  const base={schemaVersion:1,scenario:'not-exported',createdAt:'2026-11-03T08:00:00Z',
+    passed:true,gitCommit:'b'.repeat(40)};
+  const allowed=summarizeHistoryArtifact({...base,claudeVersion:'2.3.0',platform:'linux',
+    pluginName:'@team/my-plugin',prompt:'secret task'});
+  assert.equal(allowed.version,'2.3.0');
+  assert.equal(allowed.platform,'linux');
+  assert.equal(allowed.plugin,'@team/my-plugin');
+  assert.doesNotMatch(JSON.stringify(allowed),/secret task/);
+  const denied=summarizeHistoryArtifact({...base,claudeVersion:'env=TOPSECRET',platform:'internal-os',
+    pluginName:'C:/TOPSECRET/private'});
+  assert.equal(denied.version,undefined);
+  assert.equal(denied.platform,undefined);
+  assert.equal(denied.plugin,undefined);
+  assert.doesNotMatch(JSON.stringify(buildHistoryIndex([denied])),/TOPSECRET/);
+});
+
+test('suite summaries preserve boolean pass state for dashboard confidence calculations',()=>{
+  const pass=summarizeHistoryArtifact({schemaVersion:1,suite:'sample',createdAt:'2026-11-03T08:00:00Z',
+    scenarios:[{passed:true},{passed:true}],platform:'linux'});
+  assert.equal(pass.passed,true);
+  assert.equal(pass.platform,'linux');
+  const fail=summarizeHistoryArtifact({schemaVersion:1,suite:'sample',createdAt:'2026-11-03T08:00:00Z',
+    scenarios:[{passed:true},{passed:false}]});
+  assert.equal(fail.passed,false);
+  assert.equal(fail.failed,1);
+});

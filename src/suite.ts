@@ -90,6 +90,7 @@ export interface SuiteRunResult {
   suite: string;
   suitePath: string;
   createdAt: string;
+  platform?: NodeJS.Platform;
   passed: boolean;
   total: number;
   discoveredTotal: number;
@@ -407,6 +408,7 @@ export async function runSuite(suitePath: string, options: SuiteRunOptions = {})
     suite: suite.name,
     suitePath: normalizeRelative(path.relative(cwd, absoluteSuitePath)),
     createdAt: new Date().toISOString(),
+    platform: process.platform,
     passed: failedCount === 0 && completed.length === resolved.length,
     total: completed.length,
     discoveredTotal: selection.discovered.length,

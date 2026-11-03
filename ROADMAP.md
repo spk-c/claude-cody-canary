@@ -103,7 +103,9 @@ The published v2.3.0 release includes bounded CI failure diagnostics, read-only 
 
 - [x] Local offline trend bars, Wilson pass-rate interval, failure clusters and missing-data handling; SQLite remains optional.
 - [x] Strict versioned Claude/Codex/Qwen cohort comparison with identical scenario populations, per-provider evidence and explicit cross-provider not-comparable flags.
-- [ ] Add richer version × plugin × OS history schema, deep multi-run statistics, provider API integration and live model-backed E2E validation.
+- [x] SQLite schema v2 migration, validated version / OS / plugin history groups and interactive dashboard filters.
+- [x] Conservative family-wise correction for bounded pass-rate comparisons.
+- [ ] Controlled scenario-matched longitudinal comparisons, provider API integrations and live model-backed E2E validation remain open.
 ## v2.3 CI quality follow-ups — planned (Issue #42)
 
 - Test real GitHub workflow attempts including cancelled runners and permission edge cases.

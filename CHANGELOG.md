@@ -4,6 +4,10 @@ All notable changes to Claude Code Canary are documented here. Semantic Versioni
 
 ## [Unreleased]
 
+- Migrate optional local SQLite history from schema v1 to v2 while preserving existing rows and IDs. Store only validated version, OS and plugin identifiers when supplied.
+- Add offline dashboard dimension filters and `history sqlite-matrix` with explicit unknown metadata handling.
+- Add conservative family-wise correction for bounded pass-rate comparisons through `stats family`.
+
 - Support bounded MCP 2026 request-scoped SSE responses and read-only notification accounting; do not auto-answer MRTR or execute tools.
 - Add local-only, explicitly approved `mcp listen` subscription probes with streaming event limits and cancellation; provide `mcp stdio-negative` for trusted local CommonJS fixtures.
 - Add an offline, explicitly approved MRTR retry-envelope builder that validates answer keys and carries opaque server state without network calls.

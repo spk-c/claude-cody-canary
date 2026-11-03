@@ -65,6 +65,8 @@ export interface RunResult {
     metrics: RunMetrics;
     createdAt: string;
     gitCommit: string;
+    /** Public execution OS; no environment variables or host identifiers. */
+    platform?: NodeJS.Platform;
     artifactPath?: string;
 }
 export interface DoctorCheck {
