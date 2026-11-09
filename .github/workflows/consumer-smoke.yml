@@ -69,7 +69,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Test actual released composite Action without an API key
         id: contract
-        uses: spk-c/claude-cody-canary@e118e3705c919d29ea16b3878888484db53dd14d # v2.2.0
+        uses: spk-c/claude-cody-canary@7ae3e5ac659e7e7a060b899dcf818ce0a2902c03 # v2.4.0
         with:
           mode: mcp-check
           mcp-contract: .github/fixtures/consumer-mcp.mcp.yml
